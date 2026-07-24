@@ -62,7 +62,7 @@ func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var n models.Task
 	if err := json.NewDecoder(r.Body).Decode(&n); err != nil {
-		writeError(w, "Uncorrect Json: ", http.StatusBadRequest)
+		writeError(w, "Incorrect Json: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
@@ -80,7 +80,7 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 	var n models.Task
 	if err := json.NewDecoder(r.Body).Decode(&n); err != nil {
-		writeError(w, "Uncorrect data: ", http.StatusBadRequest)
+		writeError(w, "Incorrect data: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
@@ -93,7 +93,15 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	task, err := h.repo.Update(r.Context(), id, n)
 	if err != nil {
-		writeError(w, "Not found this task", http.StatusNotFound)
+		if errors.Is(err, repository.ErrTaskNotFound) {
+			writeError(w, "Not found this task", http.StatusNotFound)
+			return
+		}
+		if errors.Is(err, repository.ErrValidation) {
+			writeError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		writeError(w, "Error on the server side", http.StatusInternalServerError)
 		return
 	}
 
@@ -110,7 +118,17 @@ func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.repo.Delete(r.Context(), id); err != nil {
-		writeError(w, "Not found this task", http.StatusNotFound)
+		if errors.Is(err, repository.ErrTaskNotFound) {
+			writeError(w, "Not found this task", http.StatusNotFound)
+			return
+		}
+		if errors.Is(err, repository.ErrValidation) {
+			writeError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		writeError(w, "Error on the server side", http.StatusInternalServerError)
 		return
 	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

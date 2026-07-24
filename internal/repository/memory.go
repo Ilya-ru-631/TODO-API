@@ -8,14 +8,14 @@ import (
 )
 
 type MemoryRepo struct {
-	notes  map[int]models.Task
+	tasks  map[int]models.Task
 	nextID int
 	mu     sync.RWMutex
 }
 
 func NewMemoryRepo() *MemoryRepo {
 	return &MemoryRepo{
-		notes:  make(map[int]models.Task),
+		tasks:  make(map[int]models.Task),
 		nextID: 1,
 	}
 }
@@ -24,8 +24,8 @@ func (m *MemoryRepo) GetAll(ctx context.Context) ([]models.Task, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	tasks := make([]models.Task, 0, len(m.notes))
-	for _, v := range m.notes {
+	tasks := make([]models.Task, 0, len(m.tasks))
+	for _, v := range m.tasks {
 		tasks = append(tasks, v)
 	}
 
@@ -33,12 +33,12 @@ func (m *MemoryRepo) GetAll(ctx context.Context) ([]models.Task, error) {
 }
 
 func (m *MemoryRepo) GetByID(ctx context.Context, id int) (models.Task, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
-	t, ok := m.notes[id]
+	t, ok := m.tasks[id]
 	if !ok {
-		return models.Task{}, fmt.Errorf("ID must be a number: %w", ErrTaskNotFound)
+		return models.Task{}, fmt.Errorf("Task not a found: %w", ErrTaskNotFound)
 	}
 
 	return t, nil
@@ -51,7 +51,7 @@ func (m *MemoryRepo) Create(ctx context.Context, t models.Task) (models.Task, er
 
 	m.mu.Lock()
 	t.ID = m.nextID
-	m.notes[t.ID] = t
+	m.tasks[t.ID] = t
 	m.nextID++
 	m.mu.Unlock()
 
@@ -60,31 +60,26 @@ func (m *MemoryRepo) Create(ctx context.Context, t models.Task) (models.Task, er
 }
 
 func (m *MemoryRepo) Update(ctx context.Context, id int, t models.Task) (models.Task, error) {
-	m.mu.RLock()
-	value, ok := m.notes[id]
-	m.mu.RUnlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	value, ok := m.tasks[id]
 	if !ok {
 		return models.Task{}, fmt.Errorf("Tasks not found: %w", ErrTaskNotFound)
 	}
 
-	m.mu.Lock()
 	t.ID = value.ID
-	m.notes[value.ID] = t
-	m.mu.Unlock()
+	m.tasks[value.ID] = t
 	return t, nil
 }
 
 func (m *MemoryRepo) Delete(ctx context.Context, id int) error {
-	m.mu.RLock()
-	_, ok := m.notes[id]
-	m.mu.RUnlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	_, ok := m.tasks[id]
 	if !ok {
 		return fmt.Errorf("Tasks not found: %w", ErrTaskNotFound)
 	}
 
-	m.mu.Lock()
-	delete(m.notes, id)
-	m.mu.Unlock()
-
+	delete(m.tasks, id)
 	return nil
 }
