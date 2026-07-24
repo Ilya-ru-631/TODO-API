@@ -3,11 +3,12 @@ package repository
 import (
 	"context"
 	"errors"
-	"proga/todo_api/internal/models"
+	"todo_api/internal/models"
 )
 
 var (
 	ErrTaskNotFound = errors.New("Task not found")
+	ErrValidation   = errors.New("Validation failed")
 )
 
 type TaskRepository interface {
