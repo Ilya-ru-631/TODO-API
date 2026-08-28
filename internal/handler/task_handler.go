@@ -30,7 +30,7 @@ func writeError(w http.ResponseWriter, msg string, code int) {
 func (h *TaskHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	tasks, err := h.repo.GetAll(r.Context())
 	if err != nil {
-		writeError(w, "Internal server error", http.StatusInternalServerError)
+		writeError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -41,17 +41,17 @@ func (h *TaskHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		writeError(w, "ID must be a number", http.StatusBadRequest)
+		writeError(w, "id must be a number", http.StatusBadRequest)
 		return
 	}
 
 	task, err := h.repo.GetByID(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, repository.ErrTaskNotFound) {
-			writeError(w, "Not found task with this id", http.StatusNotFound)
+			writeError(w, "not found task with this id", http.StatusNotFound)
 			return
 		}
-		writeError(w, "Error on the server side", http.StatusInternalServerError)
+		writeError(w, "error on the server side", http.StatusInternalServerError)
 		return
 	}
 
@@ -62,14 +62,14 @@ func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var n models.Task
 	if err := json.NewDecoder(r.Body).Decode(&n); err != nil {
-		writeError(w, "Incorrect Json: "+err.Error(), http.StatusBadRequest)
+		writeError(w, "incorrect Json: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
 
 	task, err := h.repo.Create(r.Context(), n)
 	if err != nil {
-		writeError(w, "Error when submitting a task", http.StatusBadRequest)
+		writeError(w, "error when submitting a task", http.StatusBadRequest)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -80,28 +80,28 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 	var n models.Task
 	if err := json.NewDecoder(r.Body).Decode(&n); err != nil {
-		writeError(w, "Incorrect data: "+err.Error(), http.StatusBadRequest)
+		writeError(w, "incorrect data: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
 
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		writeError(w, "ID must be a number", http.StatusBadRequest)
+		writeError(w, "id must be a number", http.StatusBadRequest)
 		return
 	}
 
 	task, err := h.repo.Update(r.Context(), id, n)
 	if err != nil {
 		if errors.Is(err, repository.ErrTaskNotFound) {
-			writeError(w, "Not found this task", http.StatusNotFound)
+			writeError(w, "not found this task", http.StatusNotFound)
 			return
 		}
 		if errors.Is(err, repository.ErrValidation) {
 			writeError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		writeError(w, "Error on the server side", http.StatusInternalServerError)
+		writeError(w, "error on the server side", http.StatusInternalServerError)
 		return
 	}
 
@@ -113,20 +113,20 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		writeError(w, "ID must be a number", http.StatusBadRequest)
+		writeError(w, "id must be a number", http.StatusBadRequest)
 		return
 	}
 
 	if err := h.repo.Delete(r.Context(), id); err != nil {
 		if errors.Is(err, repository.ErrTaskNotFound) {
-			writeError(w, "Not found this task", http.StatusNotFound)
+			writeError(w, "not found this task", http.StatusNotFound)
 			return
 		}
 		if errors.Is(err, repository.ErrValidation) {
 			writeError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		writeError(w, "Error on the server side", http.StatusInternalServerError)
+		writeError(w, "error on the server side", http.StatusInternalServerError)
 		return
 	}
 
