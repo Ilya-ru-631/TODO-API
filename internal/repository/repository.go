@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	ErrTaskNotFound = errors.New("Task not found")
-	ErrValidation   = errors.New("Validation failed")
+	ErrTaskNotFound = errors.New("task not found")
+	ErrValidation   = errors.New("validation failed")
 )
 
 type TaskRepository interface {

@@ -38,7 +38,7 @@ func (m *MemoryRepo) GetByID(ctx context.Context, id int) (models.Task, error) {
 
 	t, ok := m.tasks[id]
 	if !ok {
-		return models.Task{}, fmt.Errorf("Task not a found: %w", ErrTaskNotFound)
+		return models.Task{}, fmt.Errorf("task not a found: %w", ErrTaskNotFound)
 	}
 
 	return t, nil
@@ -46,7 +46,7 @@ func (m *MemoryRepo) GetByID(ctx context.Context, id int) (models.Task, error) {
 
 func (m *MemoryRepo) Create(ctx context.Context, t models.Task) (models.Task, error) {
 	if t.Title == "" {
-		return models.Task{}, fmt.Errorf("Text should not be empty: %w", ErrValidation)
+		return models.Task{}, fmt.Errorf("text should not be empty: %w", ErrValidation)
 	}
 
 	m.mu.Lock()
@@ -64,7 +64,7 @@ func (m *MemoryRepo) Update(ctx context.Context, id int, t models.Task) (models.
 	defer m.mu.Unlock()
 	value, ok := m.tasks[id]
 	if !ok {
-		return models.Task{}, fmt.Errorf("Tasks not found: %w", ErrTaskNotFound)
+		return models.Task{}, fmt.Errorf("tasks not found: %w", ErrTaskNotFound)
 	}
 
 	t.ID = value.ID
