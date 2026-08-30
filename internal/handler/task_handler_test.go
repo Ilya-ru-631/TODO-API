@@ -7,8 +7,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 	"todo_api/internal/models"
+	"todo_api/internal/repository"
 )
 
 type fakeRepo struct {
@@ -101,6 +103,38 @@ func Test_GetByID(t *testing.T) {
 	}
 }
 
+func Test_GetByID_InvalidID(t *testing.T) {
+	repo := &fakeRepo{}
+
+	h := NewTaskHandler(repo)
+	req := httptest.NewRequest("GET", "/tasks/abc", nil)
+	req.SetPathValue("id", "abc")
+	rec := httptest.NewRecorder()
+	h.GetByID(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("got: %v, want: %v", rec.Code, http.StatusBadRequest)
+	}
+}
+
+func Test_GetByID_NotFound(t *testing.T) {
+	repo := &fakeRepo{
+		GetByIDFunc: func(ctx context.Context, id int) (models.Task, error) {
+			return models.Task{}, repository.ErrTaskNotFound
+		},
+	}
+
+	h := NewTaskHandler(repo)
+	req := httptest.NewRequest("GET", "/tasks/2", nil)
+	req.SetPathValue("id", "2")
+	rec := httptest.NewRecorder()
+	h.GetByID(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("got: %v, want: %v", rec.Code, http.StatusNotFound)
+	}
+}
+
 func Test_Create(t *testing.T) {
 	input := models.Task{
 		Title: "Dinner",
@@ -109,7 +143,7 @@ func Test_Create(t *testing.T) {
 
 	body, err := json.Marshal(input)
 	if err != nil {
-		t.Fatalf("failed to marshl input: %v", err)
+		t.Fatalf("failed to marshal input: %v", err)
 	}
 
 	want := input
@@ -122,7 +156,8 @@ func Test_Create(t *testing.T) {
 	}
 
 	h := NewTaskHandler(repo)
-	req := httptest.NewRequest("POST", "/tasks/", bytes.NewReader(body))
+	req := httptest.NewRequest("POST", "/tasks/2", bytes.NewReader(body))
+	req.SetPathValue("id", "2")
 	rec := httptest.NewRecorder()
 
 	h.Create(rec, req)
@@ -141,4 +176,163 @@ func Test_Create(t *testing.T) {
 		t.Errorf("got: %v, want: %v", rec.Code, http.StatusCreated)
 	}
 
+}
+
+func Test_Create_InvalidJSON(t *testing.T) {
+	repo := &fakeRepo{}
+	req := httptest.NewRequest("POST", "/tasks/", strings.NewReader("{invalid json}"))
+	rec := httptest.NewRecorder()
+
+	h := NewTaskHandler(repo)
+	h.Create(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("got: %v, want: %v", rec.Code, http.StatusBadRequest)
+	}
+}
+
+func Test_Update(t *testing.T) {
+	after := models.Task{
+		ID:    2,
+		Title: "Dinner",
+		Done:  true,
+	}
+
+	repo := &fakeRepo{
+		UpdateFunc: func(ctx context.Context, id int, t models.Task) (models.Task, error) {
+			return t, nil
+		},
+	}
+
+	body, err := json.Marshal(after)
+	if err != nil {
+		t.Fatalf("failed to marshal input: %v", err)
+	}
+
+	h := NewTaskHandler(repo)
+	req := httptest.NewRequest("PUT", "/tasks/2", bytes.NewReader(body))
+	req.SetPathValue("id", "2")
+	rec := httptest.NewRecorder()
+
+	h.Update(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("got: %v, want: %v", rec.Code, http.StatusOK)
+	}
+
+	var data models.Task
+	errUnmarshal := json.Unmarshal(rec.Body.Bytes(), &data)
+	if errUnmarshal != nil {
+		t.Errorf("error for parsing body: %v", errUnmarshal)
+	}
+
+	if !reflect.DeepEqual(after, data) {
+		t.Errorf("got: %+v, want: %+v", data, after)
+	}
+
+}
+
+func Test_Update_InvalidID(t *testing.T) {
+	repo := &fakeRepo{}
+
+	h := NewTaskHandler(repo)
+	req := httptest.NewRequest("PUT", "/tasks/abc", nil)
+	req.SetPathValue("id", "abc")
+	rec := httptest.NewRecorder()
+	h.Update(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("got: %v, want: %v", rec.Code, http.StatusBadRequest)
+	}
+}
+
+func Test_Update_InvalidJSON(t *testing.T) {
+	repo := &fakeRepo{}
+	req := httptest.NewRequest("PUT", "/tasks/2", strings.NewReader("{invalid json}"))
+	req.SetPathValue("id", "2")
+	rec := httptest.NewRecorder()
+
+	h := NewTaskHandler(repo)
+	h.Update(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("got: %v, want: %v", rec.Code, http.StatusBadRequest)
+	}
+}
+
+func Test_Update_NotFound(t *testing.T) {
+	after := models.Task{
+		ID:    2,
+		Title: "Dinner",
+		Done:  true,
+	}
+
+	body, err := json.Marshal(after)
+	if err != nil {
+		t.Fatalf("failed to marshal input: %v", err)
+	}
+
+	repo := &fakeRepo{
+		UpdateFunc: func(ctx context.Context, id int, t models.Task) (models.Task, error) {
+			return models.Task{}, repository.ErrTaskNotFound
+		},
+	}
+
+	h := NewTaskHandler(repo)
+	req := httptest.NewRequest("PUT", "/tasks/2", bytes.NewReader(body))
+	req.SetPathValue("id", "2")
+	rec := httptest.NewRecorder()
+	h.Update(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("got: %v, want: %v", rec.Code, http.StatusNotFound)
+	}
+}
+
+func Test_Delete(t *testing.T) {
+	repo := &fakeRepo{
+		DeleteFunc: func(ctx context.Context, id int) error {
+			return nil
+		},
+	}
+
+	h := NewTaskHandler(repo)
+	req := httptest.NewRequest("DELETE", "/tasks/2", nil)
+	req.SetPathValue("id", "2")
+	rec := httptest.NewRecorder()
+	h.Delete(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Errorf("got: %v, want: %v", rec.Code, http.StatusNoContent)
+	}
+}
+
+func Test_Delete_InvalidID(t *testing.T) {
+	repo := &fakeRepo{}
+
+	h := NewTaskHandler(repo)
+	req := httptest.NewRequest("DELETE", "/tasks/abc", nil)
+	req.SetPathValue("id", "abc")
+	rec := httptest.NewRecorder()
+	h.Delete(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("got: %v, want: %v", rec.Code, http.StatusBadRequest)
+	}
+}
+
+func Test_Delete_NotFound(t *testing.T) {
+	repo := &fakeRepo{
+		DeleteFunc: func(ctx context.Context, id int) error {
+			return repository.ErrTaskNotFound
+		},
+	}
+
+	h := NewTaskHandler(repo)
+	req := httptest.NewRequest("DELETE", "/tasks/2", nil)
+	req.SetPathValue("id", "2")
+	rec := httptest.NewRecorder()
+	h.Delete(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("got: %v, want: %v", rec.Code, http.StatusNotFound)
+	}
 }
