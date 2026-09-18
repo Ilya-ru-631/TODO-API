@@ -60,8 +60,13 @@ func (m *MemoryRepo) Create(ctx context.Context, t models.Task) (models.Task, er
 }
 
 func (m *MemoryRepo) Update(ctx context.Context, id int, t models.Task) (models.Task, error) {
+	if t.Title == "" {
+		return models.Task{}, fmt.Errorf("text should not be empty: %w", ErrValidation)
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
 	value, ok := m.tasks[id]
 	if !ok {
 		return models.Task{}, fmt.Errorf("tasks not found: %w", ErrTaskNotFound)

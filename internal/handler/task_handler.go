@@ -5,7 +5,10 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
-	"todo_api/internal/models"
+	"strings"
+
+	//"todo_api/internal/models"
+
 	"todo_api/internal/repository"
 )
 
@@ -16,6 +19,8 @@ type TaskHandler struct {
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
+
+var LimitForBodyLength = 500
 
 func NewTaskHandler(repo repository.TaskRepository) *TaskHandler {
 	return &TaskHandler{repo: repo}
@@ -60,14 +65,22 @@ func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
-	var n models.Task
-	if err := json.NewDecoder(r.Body).Decode(&n); err != nil {
+	var req CreateTaskRequest
+
+	r.Body = http.MaxBytesReader(w, r.Body, int64(LimitForBodyLength))
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, "incorrect Json: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
 
-	task, err := h.repo.Create(r.Context(), n)
+	if strings.TrimSpace(req.Title) == "" {
+		writeError(w, "empty title", http.StatusBadRequest)
+		return
+	}
+
+	task, err := h.repo.Create(r.Context(), req.ToTask())
 	if err != nil {
 		writeError(w, "error when submitting a task", http.StatusBadRequest)
 		return
@@ -78,8 +91,11 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
-	var n models.Task
-	if err := json.NewDecoder(r.Body).Decode(&n); err != nil {
+	var req UpdateTaskRequest
+
+	r.Body = http.MaxBytesReader(w, r.Body, int64(LimitForBodyLength))
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, "incorrect data: "+err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -91,7 +107,12 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := h.repo.Update(r.Context(), id, n)
+	if strings.TrimSpace(req.Title) == "" {
+		writeError(w, "empty title", http.StatusBadRequest)
+		return
+	}
+
+	task, err := h.repo.Update(r.Context(), id, req.ToTask())
 	if err != nil {
 		if errors.Is(err, repository.ErrTaskNotFound) {
 			writeError(w, "not found this task", http.StatusNotFound)

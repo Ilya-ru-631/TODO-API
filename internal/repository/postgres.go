@@ -86,6 +86,10 @@ func (p *PostgresRepo) Create(ctx context.Context, t models.Task) (models.Task, 
 }
 
 func (p *PostgresRepo) Update(ctx context.Context, id int, t models.Task) (models.Task, error) {
+	if t.Title == "" {
+		return models.Task{}, fmt.Errorf("text should not be empty: %w", ErrValidation)
+	}
+
 	query := "UPDATE tasks SET title = $1, description = $2, done = $3 WHERE id = $4"
 
 	result, err := p.db.ExecContext(ctx, query, t.Title, t.Description, t.Done, id)

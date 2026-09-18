@@ -3,11 +3,17 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/joho/godotenv"
 
 	"todo_api/internal/handler"
 	"todo_api/internal/repository"
@@ -15,8 +21,25 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+func getEnv(key, defaultValue string) string {
+	get := os.Getenv(key)
+	if get == "" {
+		return defaultValue
+	}
+	return get
+}
+
 func main() {
-	db, err := sql.Open("pgx", "postgres://postgres:mysecretpassword@localhost:5432/todo_api?sslmode=disable")
+	if err := godotenv.Load(); err != nil {
+		log.Println("no .env file found, relying on real environment variables")
+	}
+
+	dbUrl := getEnv("DATABASE_URL", "")
+	if dbUrl == "" {
+		log.Fatal("Specify the URL for the database.")
+	}
+
+	db, err := sql.Open("pgx", dbUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -42,7 +65,39 @@ func main() {
 		r.Delete("/{id}", h.Delete)
 	})
 
-	if err := http.ListenAndServe("localhost:8080", r); err != nil {
-		log.Fatal(err)
+	ch := make(chan error)
+	addr := getEnv("SERVER_ADDR", "localhost:8080")
+
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      r,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  45 * time.Second,
 	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil {
+			if errors.Is(err, http.ErrServerClosed) {
+				log.Println("Finish work server")
+				return
+			}
+			ch <- err
+		}
+	}()
+
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+
+	select {
+	case <-signals:
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(ctx); err != nil {
+			log.Println(err)
+		}
+	case c := <-ch:
+		log.Fatal(c)
+	}
+
 }
