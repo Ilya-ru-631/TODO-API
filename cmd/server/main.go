@@ -17,6 +17,7 @@ import (
 
 	"todo_api/internal/handler"
 	"todo_api/internal/repository"
+	"todo_api/internal/service"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -50,7 +51,8 @@ func main() {
 	}
 
 	repo := repository.NewPostgresRepo(db)
-	h := handler.NewTaskHandler(repo)
+	svc := service.NewTaskService(repo)
+	h := handler.NewTaskHandler(svc)
 
 	r := chi.NewRouter()
 

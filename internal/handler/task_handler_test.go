@@ -11,6 +11,7 @@ import (
 	"testing"
 	"todo_api/internal/models"
 	"todo_api/internal/repository"
+	"todo_api/internal/service"
 )
 
 type fakeRepo struct {
@@ -53,7 +54,8 @@ func Test_GetAll(t *testing.T) {
 		},
 	}
 
-	h := NewTaskHandler(repo)
+	svc := service.NewTaskService(repo)
+	h := NewTaskHandler(svc)
 	req := httptest.NewRequest("GET", "/tasks/", nil)
 	rec := httptest.NewRecorder()
 	h.GetAll(rec, req)
@@ -86,7 +88,8 @@ func Test_GetByID(t *testing.T) {
 		},
 	}
 
-	h := NewTaskHandler(repo)
+	svc := service.NewTaskService(repo)
+	h := NewTaskHandler(svc)
 	req := httptest.NewRequest("GET", "/tasks/2", nil)
 	req.SetPathValue("id", "2")
 	rec := httptest.NewRecorder()
@@ -106,7 +109,8 @@ func Test_GetByID(t *testing.T) {
 func Test_GetByID_InvalidID(t *testing.T) {
 	repo := &fakeRepo{}
 
-	h := NewTaskHandler(repo)
+	svc := service.NewTaskService(repo)
+	h := NewTaskHandler(svc)
 	req := httptest.NewRequest("GET", "/tasks/abc", nil)
 	req.SetPathValue("id", "abc")
 	rec := httptest.NewRecorder()
@@ -124,7 +128,8 @@ func Test_GetByID_NotFound(t *testing.T) {
 		},
 	}
 
-	h := NewTaskHandler(repo)
+	svc := service.NewTaskService(repo)
+	h := NewTaskHandler(svc)
 	req := httptest.NewRequest("GET", "/tasks/2", nil)
 	req.SetPathValue("id", "2")
 	rec := httptest.NewRecorder()
@@ -153,9 +158,13 @@ func Test_Create(t *testing.T) {
 		CreateFunc: func(ctx context.Context, t models.Task) (models.Task, error) {
 			return want, nil
 		},
+		GetAllFunc: func(ctx context.Context) ([]models.Task, error) {
+			return []models.Task{}, nil
+		},
 	}
 
-	h := NewTaskHandler(repo)
+	svc := service.NewTaskService(repo)
+	h := NewTaskHandler(svc)
 	req := httptest.NewRequest("POST", "/tasks/2", bytes.NewReader(body))
 	req.SetPathValue("id", "2")
 	rec := httptest.NewRecorder()
@@ -183,7 +192,8 @@ func Test_Create_InvalidJSON(t *testing.T) {
 	req := httptest.NewRequest("POST", "/tasks/", strings.NewReader("{invalid json}"))
 	rec := httptest.NewRecorder()
 
-	h := NewTaskHandler(repo)
+	svc := service.NewTaskService(repo)
+	h := NewTaskHandler(svc)
 	h.Create(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("got: %v, want: %v", rec.Code, http.StatusBadRequest)
@@ -199,6 +209,7 @@ func Test_Update(t *testing.T) {
 
 	repo := &fakeRepo{
 		UpdateFunc: func(ctx context.Context, id int, t models.Task) (models.Task, error) {
+			t.ID = id
 			return t, nil
 		},
 	}
@@ -208,7 +219,8 @@ func Test_Update(t *testing.T) {
 		t.Fatalf("failed to marshal input: %v", err)
 	}
 
-	h := NewTaskHandler(repo)
+	svc := service.NewTaskService(repo)
+	h := NewTaskHandler(svc)
 	req := httptest.NewRequest("PUT", "/tasks/2", bytes.NewReader(body))
 	req.SetPathValue("id", "2")
 	rec := httptest.NewRecorder()
@@ -234,7 +246,8 @@ func Test_Update(t *testing.T) {
 func Test_Update_InvalidID(t *testing.T) {
 	repo := &fakeRepo{}
 
-	h := NewTaskHandler(repo)
+	svc := service.NewTaskService(repo)
+	h := NewTaskHandler(svc)
 	req := httptest.NewRequest("PUT", "/tasks/abc", nil)
 	req.SetPathValue("id", "abc")
 	rec := httptest.NewRecorder()
@@ -251,7 +264,8 @@ func Test_Update_InvalidJSON(t *testing.T) {
 	req.SetPathValue("id", "2")
 	rec := httptest.NewRecorder()
 
-	h := NewTaskHandler(repo)
+	svc := service.NewTaskService(repo)
+	h := NewTaskHandler(svc)
 	h.Update(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("got: %v, want: %v", rec.Code, http.StatusBadRequest)
@@ -276,7 +290,8 @@ func Test_Update_NotFound(t *testing.T) {
 		},
 	}
 
-	h := NewTaskHandler(repo)
+	svc := service.NewTaskService(repo)
+	h := NewTaskHandler(svc)
 	req := httptest.NewRequest("PUT", "/tasks/2", bytes.NewReader(body))
 	req.SetPathValue("id", "2")
 	rec := httptest.NewRecorder()
@@ -294,7 +309,8 @@ func Test_Delete(t *testing.T) {
 		},
 	}
 
-	h := NewTaskHandler(repo)
+	svc := service.NewTaskService(repo)
+	h := NewTaskHandler(svc)
 	req := httptest.NewRequest("DELETE", "/tasks/2", nil)
 	req.SetPathValue("id", "2")
 	rec := httptest.NewRecorder()
@@ -308,7 +324,8 @@ func Test_Delete(t *testing.T) {
 func Test_Delete_InvalidID(t *testing.T) {
 	repo := &fakeRepo{}
 
-	h := NewTaskHandler(repo)
+	svc := service.NewTaskService(repo)
+	h := NewTaskHandler(svc)
 	req := httptest.NewRequest("DELETE", "/tasks/abc", nil)
 	req.SetPathValue("id", "abc")
 	rec := httptest.NewRecorder()
@@ -326,7 +343,8 @@ func Test_Delete_NotFound(t *testing.T) {
 		},
 	}
 
-	h := NewTaskHandler(repo)
+	svc := service.NewTaskService(repo)
+	h := NewTaskHandler(svc)
 	req := httptest.NewRequest("DELETE", "/tasks/2", nil)
 	req.SetPathValue("id", "2")
 	rec := httptest.NewRecorder()

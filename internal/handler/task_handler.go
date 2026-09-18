@@ -10,10 +10,11 @@ import (
 	//"todo_api/internal/models"
 
 	"todo_api/internal/repository"
+	"todo_api/internal/service"
 )
 
 type TaskHandler struct {
-	repo repository.TaskRepository
+	service *service.TaskService
 }
 
 type ErrorResponse struct {
@@ -22,8 +23,8 @@ type ErrorResponse struct {
 
 var LimitForBodyLength = 500
 
-func NewTaskHandler(repo repository.TaskRepository) *TaskHandler {
-	return &TaskHandler{repo: repo}
+func NewTaskHandler(svc *service.TaskService) *TaskHandler {
+	return &TaskHandler{service: svc}
 }
 
 func writeError(w http.ResponseWriter, msg string, code int) {
@@ -33,7 +34,7 @@ func writeError(w http.ResponseWriter, msg string, code int) {
 }
 
 func (h *TaskHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	tasks, err := h.repo.GetAll(r.Context())
+	tasks, err := h.service.GetAll(r.Context())
 	if err != nil {
 		writeError(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -50,7 +51,7 @@ func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := h.repo.GetByID(r.Context(), id)
+	task, err := h.service.GetByID(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, repository.ErrTaskNotFound) {
 			writeError(w, "not found task with this id", http.StatusNotFound)
@@ -80,11 +81,16 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := h.repo.Create(r.Context(), req.ToTask())
+	task, err := h.service.Create(r.Context(), req.ToTask())
 	if err != nil {
+		if errors.Is(err, service.ErrDuplicateTitle) {
+			writeError(w, "a task with such a title already exists", http.StatusConflict)
+			return
+		}
 		writeError(w, "error when submitting a task", http.StatusBadRequest)
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(task)
@@ -112,7 +118,7 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := h.repo.Update(r.Context(), id, req.ToTask())
+	task, err := h.service.Update(r.Context(), id, req.ToTask())
 	if err != nil {
 		if errors.Is(err, repository.ErrTaskNotFound) {
 			writeError(w, "not found this task", http.StatusNotFound)
@@ -138,7 +144,7 @@ func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.repo.Delete(r.Context(), id); err != nil {
+	if err := h.service.Delete(r.Context(), id); err != nil {
 		if errors.Is(err, repository.ErrTaskNotFound) {
 			writeError(w, "not found this task", http.StatusNotFound)
 			return
