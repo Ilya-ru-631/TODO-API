@@ -37,7 +37,12 @@ func main() {
 
 	dbUrl := getEnv("DATABASE_URL", "")
 	if dbUrl == "" {
-		log.Fatal("Specify the URL for the database.")
+		log.Fatal("Specify the URL for the database")
+	}
+
+	secret := getEnv("JWT_SECRET", "")
+	if secret == "" {
+		log.Fatal("Specify the secret JWT token")
 	}
 
 	db, err := sql.Open("pgx", dbUrl)
@@ -54,18 +59,26 @@ func main() {
 	svc := service.NewTaskService(repo)
 	h := handler.NewTaskHandler(svc)
 
+	userRepo := repository.NewUserRepository(db)
+	svcUser := service.NewUserService(userRepo, []byte(secret))
+	authH := handler.NewAuthHandler(svcUser)
+
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
 	r.Route("/tasks", func(r chi.Router) {
+		r.Use(handler.AuthMiddleware([]byte(secret)))
 		r.Get("/", h.GetAll)
 		r.Get("/{id}", h.GetByID)
 		r.Post("/", h.Create)
 		r.Put("/{id}", h.Update)
 		r.Delete("/{id}", h.Delete)
 	})
+
+	r.Post("/register", authH.Register)
+	r.Post("/login", authH.Login)
 
 	ch := make(chan error)
 	addr := getEnv("SERVER_ADDR", "localhost:8080")
