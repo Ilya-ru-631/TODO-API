@@ -34,7 +34,13 @@ func writeError(w http.ResponseWriter, msg string, code int) {
 }
 
 func (h *TaskHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	tasks, err := h.service.GetAll(r.Context())
+	userID, ok := r.Context().Value(userIDKey).(int)
+	if !ok {
+		writeError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	tasks, err := h.service.GetAll(r.Context(), userID)
 	if err != nil {
 		writeError(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -51,7 +57,13 @@ func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := h.service.GetByID(r.Context(), id)
+	userID, ok := r.Context().Value(userIDKey).(int)
+	if !ok {
+		writeError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	task, err := h.service.GetByID(r.Context(), id, userID)
 	if err != nil {
 		if errors.Is(err, repository.ErrTaskNotFound) {
 			writeError(w, "not found task with this id", http.StatusNotFound)
@@ -66,6 +78,12 @@ func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(userIDKey).(int)
+	if !ok {
+		writeError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	var req CreateTaskRequest
 
 	r.Body = http.MaxBytesReader(w, r.Body, int64(LimitForBodyLength))
@@ -81,7 +99,7 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := h.service.Create(r.Context(), req.ToTask())
+	task, err := h.service.Create(r.Context(), userID, req.ToTask())
 	if err != nil {
 		if errors.Is(err, service.ErrDuplicateTitle) {
 			writeError(w, "a task with such a title already exists", http.StatusConflict)
@@ -97,6 +115,12 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(userIDKey).(int)
+	if !ok {
+		writeError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	var req UpdateTaskRequest
 
 	r.Body = http.MaxBytesReader(w, r.Body, int64(LimitForBodyLength))
@@ -118,7 +142,7 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := h.service.Update(r.Context(), id, req.ToTask())
+	task, err := h.service.Update(r.Context(), id, userID, req.ToTask())
 	if err != nil {
 		if errors.Is(err, repository.ErrTaskNotFound) {
 			writeError(w, "not found this task", http.StatusNotFound)
@@ -144,7 +168,13 @@ func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.Delete(r.Context(), id); err != nil {
+	userID, ok := r.Context().Value(userIDKey).(int)
+	if !ok {
+		writeError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if err := h.service.Delete(r.Context(), id, userID); err != nil {
 		if errors.Is(err, repository.ErrTaskNotFound) {
 			writeError(w, "not found this task", http.StatusNotFound)
 			return

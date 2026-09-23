@@ -23,8 +23,8 @@ func nullStringToPtr(ns sql.NullString) *string {
 	return &ns.String
 }
 
-func (p *PostgresRepo) GetAll(ctx context.Context) ([]models.Task, error) {
-	rows, err := p.db.QueryContext(ctx, "SELECT id, title, description, done FROM tasks")
+func (p *PostgresRepo) GetAll(ctx context.Context, userID int) ([]models.Task, error) {
+	rows, err := p.db.QueryContext(ctx, "SELECT id, title, description, done, user_id FROM tasks WHERE user_id = $1", userID)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +35,7 @@ func (p *PostgresRepo) GetAll(ctx context.Context) ([]models.Task, error) {
 		var t models.Task
 		var desc sql.NullString
 
-		if err := rows.Scan(&t.ID, &t.Title, &desc, &t.Done); err != nil {
+		if err := rows.Scan(&t.ID, &t.Title, &desc, &t.Done, &t.UserID); err != nil {
 			return nil, err
 		}
 
@@ -49,14 +49,14 @@ func (p *PostgresRepo) GetAll(ctx context.Context) ([]models.Task, error) {
 	return tasks, nil
 }
 
-func (p *PostgresRepo) GetByID(ctx context.Context, id int) (models.Task, error) {
-	query := "SELECT id, title, description, done FROM tasks WHERE id = $1"
+func (p *PostgresRepo) GetByID(ctx context.Context, id, userID int) (models.Task, error) {
+	query := "SELECT id, title, description, done, user_id FROM tasks WHERE id = $1 AND user_id = $2"
 
-	row := p.db.QueryRowContext(ctx, query, id)
+	row := p.db.QueryRowContext(ctx, query, id, userID)
 	var t models.Task
 	var desc sql.NullString
 
-	err := row.Scan(&t.ID, &t.Title, &desc, &t.Done)
+	err := row.Scan(&t.ID, &t.Title, &desc, &t.Done, &t.UserID)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -74,25 +74,26 @@ func (p *PostgresRepo) Create(ctx context.Context, t models.Task) (models.Task, 
 		return models.Task{}, fmt.Errorf("text should not be empty: %w", ErrValidation)
 	}
 
-	query := "INSERT INTO tasks (title, description, done) VALUES ($1, $2, $3) RETURNING id"
+	query := "INSERT INTO tasks (title, description, done, user_id) VALUES ($1, $2, $3, $4) RETURNING id"
 
-	row := p.db.QueryRowContext(ctx, query, t.Title, t.Description, t.Done)
+	row := p.db.QueryRowContext(ctx, query, t.Title, t.Description, t.Done, t.UserID)
 
 	if err := row.Scan(&t.ID); err != nil {
 		return models.Task{}, err
 	}
 
+	
 	return t, nil
 }
 
-func (p *PostgresRepo) Update(ctx context.Context, id int, t models.Task) (models.Task, error) {
+func (p *PostgresRepo) Update(ctx context.Context, id, userID int, t models.Task) (models.Task, error) {
 	if t.Title == "" {
 		return models.Task{}, fmt.Errorf("text should not be empty: %w", ErrValidation)
 	}
 
-	query := "UPDATE tasks SET title = $1, description = $2, done = $3 WHERE id = $4"
+	query := "UPDATE tasks SET title = $1, description = $2, done = $3 WHERE id = $4 AND user_id = $5"
 
-	result, err := p.db.ExecContext(ctx, query, t.Title, t.Description, t.Done, id)
+	result, err := p.db.ExecContext(ctx, query, t.Title, t.Description, t.Done, id, userID)
 
 	if err != nil {
 		return models.Task{}, err
@@ -108,14 +109,13 @@ func (p *PostgresRepo) Update(ctx context.Context, id int, t models.Task) (model
 	}
 
 	t.ID = id
-
 	return t, nil
 }
 
-func (p *PostgresRepo) Delete(ctx context.Context, id int) error {
-	query := "DELETE FROM tasks WHERE id = $1"
+func (p *PostgresRepo) Delete(ctx context.Context, id, userID int) error {
+	query := "DELETE FROM tasks WHERE id = $1 AND user_id = $2"
 
-	result, err := p.db.ExecContext(ctx, query, id)
+	result, err := p.db.ExecContext(ctx, query, id, userID)
 	if err != nil {
 		return err
 	}

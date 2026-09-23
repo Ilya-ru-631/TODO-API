@@ -20,24 +20,30 @@ func NewMemoryRepo() *MemoryRepo {
 	}
 }
 
-func (m *MemoryRepo) GetAll(ctx context.Context) ([]models.Task, error) {
+func (m *MemoryRepo) GetAll(ctx context.Context, userID int) ([]models.Task, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	tasks := make([]models.Task, 0, len(m.tasks))
 	for _, v := range m.tasks {
-		tasks = append(tasks, v)
+		if v.UserID == userID {
+			tasks = append(tasks, v)
+		}
 	}
 
 	return tasks, nil
 }
 
-func (m *MemoryRepo) GetByID(ctx context.Context, id int) (models.Task, error) {
+func (m *MemoryRepo) GetByID(ctx context.Context, id, userID int) (models.Task, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	t, ok := m.tasks[id]
 	if !ok {
+		return models.Task{}, fmt.Errorf("task not a found: %w", ErrTaskNotFound)
+	}
+
+	if t.UserID != userID {
 		return models.Task{}, fmt.Errorf("task not a found: %w", ErrTaskNotFound)
 	}
 
@@ -59,7 +65,7 @@ func (m *MemoryRepo) Create(ctx context.Context, t models.Task) (models.Task, er
 
 }
 
-func (m *MemoryRepo) Update(ctx context.Context, id int, t models.Task) (models.Task, error) {
+func (m *MemoryRepo) Update(ctx context.Context, id, userID int, t models.Task) (models.Task, error) {
 	if t.Title == "" {
 		return models.Task{}, fmt.Errorf("text should not be empty: %w", ErrValidation)
 	}
@@ -72,17 +78,25 @@ func (m *MemoryRepo) Update(ctx context.Context, id int, t models.Task) (models.
 		return models.Task{}, fmt.Errorf("tasks not found: %w", ErrTaskNotFound)
 	}
 
+	if t.UserID != userID {
+		return models.Task{}, fmt.Errorf("tasks not found: %w", ErrTaskNotFound)
+	}		
+
 	t.ID = value.ID
 	m.tasks[value.ID] = t
 	return t, nil
 }
 
-func (m *MemoryRepo) Delete(ctx context.Context, id int) error {
+func (m *MemoryRepo) Delete(ctx context.Context, id, userID int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	_, ok := m.tasks[id]
+	t, ok := m.tasks[id]
 	if !ok {
 		return fmt.Errorf("Tasks not found: %w", ErrTaskNotFound)
+	}
+
+	if t.UserID != userID {
+		return fmt.Errorf("tasks not found: %w", ErrTaskNotFound)
 	}
 
 	delete(m.tasks, id)

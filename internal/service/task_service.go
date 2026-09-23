@@ -19,8 +19,8 @@ var (
 	ErrDuplicateTitle = errors.New("a task with such a title already exists")
 )
 
-func (s *TaskService) Create(ctx context.Context, t models.Task) (models.Task, error) {
-	tasks, err := s.repo.GetAll(ctx)
+func (s *TaskService) Create(ctx context.Context, userID int, t models.Task) (models.Task, error) {
+	tasks, err := s.repo.GetAll(ctx, userID)
 	if err != nil {
 		return models.Task{}, err
 	}
@@ -31,6 +31,7 @@ func (s *TaskService) Create(ctx context.Context, t models.Task) (models.Task, e
 		}
 	}
 
+	t.UserID = userID
 	res, err := s.repo.Create(ctx, t)
 	if err != nil {
 		return models.Task{}, err
@@ -39,33 +40,33 @@ func (s *TaskService) Create(ctx context.Context, t models.Task) (models.Task, e
 }
 
 
-func(s *TaskService) GetAll(ctx context.Context) ([]models.Task, error) {
-	tasks, err := s.repo.GetAll(ctx)
+func(s *TaskService) GetAll(ctx context.Context, userID int) ([]models.Task, error) {
+	tasks, err := s.repo.GetAll(ctx, userID)
 	if err != nil {
 		return []models.Task{}, err
 	}
 	return tasks, nil
 }
 
-func (s *TaskService) GetByID(ctx context.Context, id int) (models.Task, error) {
-	task, err := s.repo.GetByID(ctx, id)
+func (s *TaskService) GetByID(ctx context.Context, id, userID int) (models.Task, error) {
+	task, err := s.repo.GetByID(ctx, id, userID)
 	if err != nil {
 		return models.Task{}, err
 	}
 	return task, nil
 }
 
-func(s *TaskService) Delete(ctx context.Context, id int) error {
-	err := s.repo.Delete(ctx, id)
+func(s *TaskService) Delete(ctx context.Context, id, userID int) error {
+	err := s.repo.Delete(ctx, id, userID)
 	if err != nil {
 		return err
 	}
 	return nil
 }	
 
-func(s *TaskService) Update(ctx context.Context, id int, t models.Task) (models.Task, error) {
+func(s *TaskService) Update(ctx context.Context, id, userID int, t models.Task) (models.Task, error) {
 	//Заглушка, далее когда появится поле is-progress нужно будет поменять данную функцию
-	task, err := s.repo.Update(ctx, id, t)
+	task, err := s.repo.Update(ctx, id, userID, t)
 		if err != nil {
 		return models.Task{}, err
 	}
