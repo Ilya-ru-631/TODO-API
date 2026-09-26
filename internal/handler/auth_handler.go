@@ -3,20 +3,22 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"todo_api/internal/service"
 )
 
 type AuthHandler struct {
 	service *service.UserService
+	log     *slog.Logger
 }
 
 type TokenRequest struct {
 	Token string `json:"token"`
 }
 
-func NewAuthHandler(svc *service.UserService) *AuthHandler {
-	return &AuthHandler{service: svc}
+func NewAuthHandler(svc *service.UserService, log *slog.Logger) *AuthHandler {
+	return &AuthHandler{service: svc, log: log}
 }
 
 func (a *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -39,6 +41,10 @@ func (a *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 			writeError(w, "username is already taken", http.StatusConflict)
 			return
 		}
+		a.log.ErrorContext(r.Context(), "registration failed",
+			slog.String("username", req.Username),
+			slog.Any("err", err),
+		)
 		writeError(w, "error for a server side", http.StatusInternalServerError)
 		return
 	}
@@ -69,7 +75,15 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	reg, err := a.service.Login(r.Context(), req.Username, req.Password)
 	if err != nil {
-		writeError(w, "wrong username or password", http.StatusUnauthorized)
+		if errors.Is(err, service.ErrPasswordOrLogin) {
+			writeError(w, "wrong username or password", http.StatusUnauthorized)
+			return
+		}
+		a.log.ErrorContext(r.Context(), "login failed",
+			slog.String("username", req.Username),
+			slog.Any("err", err),
+		)
+		writeError(w, "error on server side", http.StatusInternalServerError)
 		return
 	}
 

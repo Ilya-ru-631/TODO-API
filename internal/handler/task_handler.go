@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,6 +16,7 @@ import (
 
 type TaskHandler struct {
 	service *service.TaskService
+	log     *slog.Logger
 }
 
 type ErrorResponse struct {
@@ -23,8 +25,8 @@ type ErrorResponse struct {
 
 var LimitForBodyLength = 500
 
-func NewTaskHandler(svc *service.TaskService) *TaskHandler {
-	return &TaskHandler{service: svc}
+func NewTaskHandler(svc *service.TaskService, log *slog.Logger) *TaskHandler {
+	return &TaskHandler{service: svc, log: log}
 }
 
 func writeError(w http.ResponseWriter, msg string, code int) {
@@ -42,6 +44,10 @@ func (h *TaskHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 
 	tasks, err := h.service.GetAll(r.Context(), userID)
 	if err != nil {
+		h.log.ErrorContext(r.Context(), "failed to get tasks",
+			slog.Int("user_id", userID),
+			slog.Any("err", err),
+		)
 		writeError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -69,6 +75,12 @@ func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 			writeError(w, "not found task with this id", http.StatusNotFound)
 			return
 		}
+
+		h.log.ErrorContext(r.Context(), "failed to get task",
+			slog.Int("task_id", id),
+			slog.Int("user_id", userID),
+			slog.Any("err", err),
+		)
 		writeError(w, "error on the server side", http.StatusInternalServerError)
 		return
 	}
@@ -152,6 +164,11 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 			writeError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		h.log.ErrorContext(r.Context(), "failed to update task",
+			slog.Int("task_id", id),
+			slog.Int("user_id", userID),
+			slog.Any("err", err),
+		)
 		writeError(w, "error on the server side", http.StatusInternalServerError)
 		return
 	}
@@ -183,6 +200,11 @@ func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 			writeError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		h.log.ErrorContext(r.Context(), "failed to delete task",
+			slog.Int("task_id", id),
+			slog.Int("user_id", userID),
+			slog.Any("err", err),
+		)
 		writeError(w, "error on the server side", http.StatusInternalServerError)
 		return
 	}

@@ -15,31 +15,31 @@ import (
 )
 
 type fakeRepo struct {
-	GetAllFunc  func(ctx context.Context) ([]models.Task, error)
-	GetByIDFunc func(ctx context.Context, id int) (models.Task, error)
+	GetAllFunc  func(ctx context.Context, userID int) ([]models.Task, error)
+	GetByIDFunc func(ctx context.Context, id, userID int) (models.Task, error)
 	CreateFunc  func(ctx context.Context, t models.Task) (models.Task, error)
-	UpdateFunc  func(ctx context.Context, id int, t models.Task) (models.Task, error)
-	DeleteFunc  func(ctx context.Context, id int) error
+	UpdateFunc  func(ctx context.Context, id, userID int, t models.Task) (models.Task, error)
+	DeleteFunc  func(ctx context.Context, id, userID int) error
 }
 
-func (f *fakeRepo) GetAll(ctx context.Context) ([]models.Task, error) {
-	return f.GetAllFunc(ctx)
+func (f *fakeRepo) GetAll(ctx context.Context, userID int) ([]models.Task, error) {
+	return f.GetAllFunc(ctx, userID)
 }
 
-func (f *fakeRepo) GetByID(ctx context.Context, id int) (models.Task, error) {
-	return f.GetByIDFunc(ctx, id)
+func (f *fakeRepo) GetByID(ctx context.Context, id, userID int) (models.Task, error) {
+	return f.GetByIDFunc(ctx, id, userID)
 }
 
 func (f *fakeRepo) Create(ctx context.Context, t models.Task) (models.Task, error) {
 	return f.CreateFunc(ctx, t)
 }
 
-func (f *fakeRepo) Update(ctx context.Context, id int, t models.Task) (models.Task, error) {
-	return f.UpdateFunc(ctx, id, t)
+func (f *fakeRepo) Update(ctx context.Context, id, userID int, t models.Task) (models.Task, error) {
+	return f.UpdateFunc(ctx, id, userID, t)
 }
 
-func (f *fakeRepo) Delete(ctx context.Context, id int) error {
-	return f.DeleteFunc(ctx, id)
+func (f *fakeRepo) Delete(ctx context.Context, id, userID int) error {
+	return f.DeleteFunc(ctx, id, userID)
 }
 
 func Test_GetAll(t *testing.T) {
@@ -49,7 +49,7 @@ func Test_GetAll(t *testing.T) {
 	}
 
 	repo := &fakeRepo{
-		GetAllFunc: func(ctx context.Context) ([]models.Task, error) {
+		GetAllFunc: func(ctx context.Context, userID int) ([]models.Task, error) {
 			return want, nil
 		},
 	}
@@ -83,7 +83,7 @@ func Test_GetByID(t *testing.T) {
 	}
 
 	repo := &fakeRepo{
-		GetByIDFunc: func(ctx context.Context, id int) (models.Task, error) {
+		GetByIDFunc: func(ctx context.Context, id, userID int) (models.Task, error) {
 			return want, nil
 		},
 	}
@@ -123,7 +123,7 @@ func Test_GetByID_InvalidID(t *testing.T) {
 
 func Test_GetByID_NotFound(t *testing.T) {
 	repo := &fakeRepo{
-		GetByIDFunc: func(ctx context.Context, id int) (models.Task, error) {
+		GetByIDFunc: func(ctx context.Context, id, userID int) (models.Task, error) {
 			return models.Task{}, repository.ErrTaskNotFound
 		},
 	}
@@ -158,7 +158,7 @@ func Test_Create(t *testing.T) {
 		CreateFunc: func(ctx context.Context, t models.Task) (models.Task, error) {
 			return want, nil
 		},
-		GetAllFunc: func(ctx context.Context) ([]models.Task, error) {
+		GetAllFunc: func(ctx context.Context, userID int) ([]models.Task, error) {
 			return []models.Task{}, nil
 		},
 	}
@@ -208,7 +208,7 @@ func Test_Update(t *testing.T) {
 	}
 
 	repo := &fakeRepo{
-		UpdateFunc: func(ctx context.Context, id int, t models.Task) (models.Task, error) {
+		UpdateFunc: func(ctx context.Context, id, userID int, t models.Task) (models.Task, error) {
 			t.ID = id
 			return t, nil
 		},
@@ -285,7 +285,7 @@ func Test_Update_NotFound(t *testing.T) {
 	}
 
 	repo := &fakeRepo{
-		UpdateFunc: func(ctx context.Context, id int, t models.Task) (models.Task, error) {
+		UpdateFunc: func(ctx context.Context, id, userID int, t models.Task) (models.Task, error) {
 			return models.Task{}, repository.ErrTaskNotFound
 		},
 	}
@@ -304,7 +304,7 @@ func Test_Update_NotFound(t *testing.T) {
 
 func Test_Delete(t *testing.T) {
 	repo := &fakeRepo{
-		DeleteFunc: func(ctx context.Context, id int) error {
+		DeleteFunc: func(ctx context.Context, id, userID int) error {
 			return nil
 		},
 	}
@@ -338,7 +338,7 @@ func Test_Delete_InvalidID(t *testing.T) {
 
 func Test_Delete_NotFound(t *testing.T) {
 	repo := &fakeRepo{
-		DeleteFunc: func(ctx context.Context, id int) error {
+		DeleteFunc: func(ctx context.Context, id, userID int) error {
 			return repository.ErrTaskNotFound
 		},
 	}

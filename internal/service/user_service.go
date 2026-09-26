@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"todo_api/internal/auth"
 	"todo_api/internal/models"
 	"todo_api/internal/repository"
@@ -19,7 +18,8 @@ func NewUserService(repo repository.UserRepository, secret []byte) *UserService 
 }
 
 var (
-	ErrUsernameTaken = errors.New("username is already taken")
+	ErrUsernameTaken   = errors.New("username is already taken")
+	ErrPasswordOrLogin = errors.New("wrong password or login")
 )
 
 func (s *UserService) Register(ctx context.Context, username, password string) (string, error) {
@@ -59,12 +59,12 @@ func (s *UserService) Login(ctx context.Context, username, password string) (str
 	user, err := s.repo.GetByUsername(ctx, username)
 
 	if err != nil {
-		return "", fmt.Errorf("wrong password or login")
+		return "", ErrPasswordOrLogin
 	}
 
 	err = auth.CheckPassword(user.PasswordHash, password)
 	if err != nil {
-		return "", fmt.Errorf("wrong password or login")
+		return "", ErrPasswordOrLogin
 	}
 
 	genRes, err := auth.GenerateToken(user.ID, s.secret)

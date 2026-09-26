@@ -16,6 +16,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"todo_api/internal/handler"
+	"todo_api/internal/logger"
 	"todo_api/internal/repository"
 	"todo_api/internal/service"
 
@@ -45,6 +46,9 @@ func main() {
 		log.Fatal("Specify the secret JWT token")
 	}
 
+	env := getEnv("APP_ENV", "prod")
+	sloger := logger.New(env)
+
 	db, err := sql.Open("pgx", dbUrl)
 	if err != nil {
 		log.Fatal(err)
@@ -57,15 +61,15 @@ func main() {
 
 	repo := repository.NewPostgresRepo(db)
 	svc := service.NewTaskService(repo)
-	h := handler.NewTaskHandler(svc)
+	h := handler.NewTaskHandler(svc, sloger)
 
 	userRepo := repository.NewUserRepository(db)
 	svcUser := service.NewUserService(userRepo, []byte(secret))
-	authH := handler.NewAuthHandler(svcUser)
+	authH := handler.NewAuthHandler(svcUser, sloger)
 
 	r := chi.NewRouter()
 
-	r.Use(middleware.Logger)
+	r.Use(logger.LoggerMiddleware(sloger))
 	r.Use(middleware.Recoverer)
 
 	r.Route("/tasks", func(r chi.Router) {
