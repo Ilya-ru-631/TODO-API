@@ -117,7 +117,11 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 			writeError(w, "a task with such a title already exists", http.StatusConflict)
 			return
 		}
-		writeError(w, "error when submitting a task", http.StatusBadRequest)
+		h.log.ErrorContext(r.Context(), "failed to create task",
+			slog.Int("user_id", userID),
+			slog.Any("err", err),
+		)
+		writeError(w, "error on a server side", http.StatusInternalServerError)
 		return
 	}
 
