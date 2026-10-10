@@ -15,7 +15,11 @@ func AuthMiddleware(secret []byte) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token := r.Header.Get("Authorization")
-			token = strings.TrimPrefix(token, "Bearer ")
+			token, found := strings.CutPrefix(token, "Bearer ")
+			if !found {
+				writeError(w, "invalid or expired token", http.StatusUnauthorized)
+				return
+			}
 
 			userId, err := auth.ParsingToken(token, secret)
 			if err != nil {

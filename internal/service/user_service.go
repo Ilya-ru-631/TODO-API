@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"todo_api/internal/auth"
 	"todo_api/internal/models"
 	"todo_api/internal/repository"
@@ -59,7 +60,10 @@ func (s *UserService) Login(ctx context.Context, username, password string) (str
 	user, err := s.repo.GetByUsername(ctx, username)
 
 	if err != nil {
-		return "", ErrPasswordOrLogin
+		if errors.Is(err, repository.ErrUserNotFound) {
+			return "", ErrPasswordOrLogin
+		}
+		return "", fmt.Errorf("get user by username: %w", err)
 	}
 
 	err = auth.CheckPassword(user.PasswordHash, password)
