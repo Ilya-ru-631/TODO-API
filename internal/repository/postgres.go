@@ -82,7 +82,6 @@ func (p *PostgresRepo) Create(ctx context.Context, t models.Task) (models.Task, 
 		return models.Task{}, err
 	}
 
-	
 	return t, nil
 }
 
