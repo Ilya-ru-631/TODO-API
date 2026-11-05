@@ -30,7 +30,7 @@ func (p *PostgresRepo) GetAll(ctx context.Context, userID int) ([]models.Task, e
 	}
 	defer rows.Close()
 
-	var tasks []models.Task
+	tasks := make([]models.Task, 0)
 	for rows.Next() {
 		var t models.Task
 		var desc sql.NullString

@@ -42,8 +42,11 @@ func (up *UserPostgresRepository) GetByUsername(ctx context.Context, username st
 
 	err := row.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.CreatedAt)
 
-	if errors.Is(err, sql.ErrNoRows) {
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		return models.User{}, ErrUserNotFound
+	case err != nil:
+		return models.User{}, fmt.Errorf("error for scan user: %w", err)
 	}
 
 	return u, nil

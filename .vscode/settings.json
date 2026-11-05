@@ -1,0 +1,5 @@
+{
+    "go.testEnvVars": {
+        "TEST_DATABASE_URL": "postgres://postgres:password@localhost:5432/todo_api_test?sslmode=disable"
+    }
+}

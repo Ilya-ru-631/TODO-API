@@ -14,7 +14,7 @@ func strPtr(s string) *string {
 
 func Test_GetByID(t *testing.T) {
 	db := setupTestDB(t)
-	realPostgresRepo := NewPostgresRepo(db)
+	repo := NewPostgresRepo(db)
 
 	username := "first"
 	userID := createTestUser(t, db, username)
@@ -88,7 +88,7 @@ func Test_GetByID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			task, err := realPostgresRepo.GetByID(context.Background(), tt.inputTaskID, tt.inputUserID)
+			task, err := repo.GetByID(context.Background(), tt.inputTaskID, tt.inputUserID)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("got error: %v, want error: %v", err, tt.wantErr)
 			}
@@ -98,5 +98,128 @@ func Test_GetByID(t *testing.T) {
 			}
 		})
 	}
+}
 
+func Test_GetAll(t *testing.T) {
+	db := setupTestDB(t)
+	repo := NewPostgresRepo(db)
+
+	username := "first"
+	userID := createTestUser(t, db, username)
+
+	ownerUsername := "owner"
+	ownerUserID := createTestUser(t, db, ownerUsername)
+
+	emptyArrUsername := "empty"
+	emptyArrUserID := createTestUser(t, db, emptyArrUsername)
+
+	var tasksFirst []models.Task
+	var tasksOwner []models.Task
+
+	firstTask := models.Task{
+		UserID:      userID,
+		Title:       "Homework",
+		Description: strPtr("deadline at 19:00"),
+		Done:        false,
+	}
+	firstTask.ID = createTestTask(t, db, firstTask)
+
+	firstTask2 := models.Task{
+		UserID: userID,
+		Title:  "Dinner",
+		Done:   false,
+	}
+	firstTask2.ID = createTestTask(t, db, firstTask2)
+
+	secondTask := models.Task{
+		UserID:      ownerUserID,
+		Title:       "Go to school",
+		Description: strPtr("start at 9.00"),
+		Done:        true,
+	}
+	secondTask.ID = createTestTask(t, db, secondTask)
+
+	tasksFirst = append(tasksFirst, firstTask, firstTask2)
+	tasksOwner = append(tasksOwner, secondTask)
+
+	cases := []struct {
+		name     string
+		userID   int
+		arrTasks []models.Task
+		wantErr  error
+	}{
+		{
+			name:     "good_test",
+			userID:   userID,
+			arrTasks: tasksFirst,
+			wantErr:  nil,
+		},
+		{
+			name:     "owner_user",
+			userID:   ownerUserID,
+			arrTasks: tasksOwner,
+			wantErr:  nil,
+		},
+		{
+			name:     "empty_array",
+			userID:   emptyArrUserID,
+			arrTasks: []models.Task{},
+			wantErr:  nil,
+		},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			tasks, err := repo.GetAll(context.Background(), tt.userID)
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("got error: %v, want error: %v", err, tt.wantErr)
+			}
+
+			if !reflect.DeepEqual(tasks, tt.arrTasks) {
+				t.Fatalf("got array for tasks: %v, want array for tasks: %v", tasks, tt.arrTasks)
+			}
+		})
+	}
+}
+
+func Test_Create(t *testing.T) {
+	db := setupTestDB(t)
+	repo := NewPostgresRepo(db)
+
+	username := "fitst"
+	userID := createTestUser(t, db, username)
+
+	firstTask := models.Task{
+		UserID:      userID,
+		Title:       "Homework",
+		Description: strPtr("deadline at 19:00"),
+		Done:        false,
+	}
+
+	cases := []struct {
+		name    string
+		taskCr  models.Task
+		wantErr error
+	}{
+		{
+			name: "good_test",
+			taskCr: firstTask,
+			wantErr: nil,
+		},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			task, err := repo.Create(context.Background(), tt.taskCr)
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("got error: %v, want error: %v", err, tt.wantErr)
+			}
+
+			dbTask := readTestTask(t, db, task.ID)
+
+			if !reflect.DeepEqual(task, dbTask) {
+				t.Errorf("got task: %v, want task: %v", task, dbTask)
+			}
+		})
+	}
 }
