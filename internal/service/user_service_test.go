@@ -26,7 +26,7 @@ func (f *fakeUserRepo) GetByUsername(ctx context.Context, username string) (mode
 }
 
 // Test_Concurrency - воспроизводит гонку в register.
-// 5 горутин одновременно пытаются зарегестрироваться одно и тоже имя.
+// 5 горутин одновременно пытаются зарегистрироваться c одним и тем же именем.
 // Исправный код должен показать одну успешную регистрацию.
 func Test_Concurrency(t *testing.T) {
 	usernameTest := "test_user"
@@ -38,7 +38,7 @@ func Test_Concurrency(t *testing.T) {
 	// wg - главная горутина теста ждёт, пока все пять Register завершатся,
 	// и только потом читает счётчик.
 	var wg sync.WaitGroup
-	//ready: барьер внутри фейка. Не отпускает ни одну горутину из
+	// ready: барьер внутри фейка. Не отпускает ни одну горутину из
 	// GetByUsername, пока все пять не получили результат проверки.
 	// Без него быстрая горутина успевает и проверить, и создать пользователя
 	// до того, как остальные дойдут до проверки, и гонка не проявляется.
@@ -54,10 +54,14 @@ func Test_Concurrency(t *testing.T) {
 		CreateFuncUser: func(ctx context.Context, u models.User) (models.User, error) {
 			rmu.Lock()
 			defer rmu.Unlock()
+			_, ok := users[u.Username]
+			if ok {
+				return models.User{}, repository.ErrUsernameTaken
+			}
 			users[u.Username] = u
 			return u, nil
-
 		},
+
 		GetByUsernameFunc: func(ctx context.Context, username string) (models.User, error) {
 			rmu.RLock()
 			v, ok := users[username]
@@ -79,8 +83,8 @@ func Test_Concurrency(t *testing.T) {
 			defer wg.Done()
 			_, err := svc.Register(context.Background(), usernameTest, password)
 			if err != nil {
-				if !errors.Is(err, ErrUsernameTaken) {
-					t.Errorf("got: %v, want: %v", err, ErrUsernameTaken)
+				if !errors.Is(err, ErrUsernameIsTaken) {
+					t.Errorf("got: %v, want: %v", err, ErrUsernameIsTaken)
 				}
 			} else {
 				countRegUsers.Add(1)

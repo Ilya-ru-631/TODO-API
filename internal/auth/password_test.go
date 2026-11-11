@@ -96,5 +96,3 @@ func Test_TooLongPassword(t *testing.T) {
 		t.Errorf("got error: %v, want: %v", err, bcrypt.ErrPasswordTooLong)
 	}
 }
-
-

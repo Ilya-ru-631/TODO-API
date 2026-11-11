@@ -26,7 +26,7 @@ func (s *TaskService) Create(ctx context.Context, userID int, t models.Task) (mo
 	}
 
 	for _, task := range tasks {
-		if task.Title == t.Title && !task.Done{
+		if task.Title == t.Title && !task.Done {
 			return models.Task{}, ErrDuplicateTitle
 		}
 	}
@@ -39,8 +39,7 @@ func (s *TaskService) Create(ctx context.Context, userID int, t models.Task) (mo
 	return res, nil
 }
 
-
-func(s *TaskService) GetAll(ctx context.Context, userID int) ([]models.Task, error) {
+func (s *TaskService) GetAll(ctx context.Context, userID int) ([]models.Task, error) {
 	tasks, err := s.repo.GetAll(ctx, userID)
 	if err != nil {
 		return []models.Task{}, err
@@ -56,18 +55,18 @@ func (s *TaskService) GetByID(ctx context.Context, id, userID int) (models.Task,
 	return task, nil
 }
 
-func(s *TaskService) Delete(ctx context.Context, id, userID int) error {
+func (s *TaskService) Delete(ctx context.Context, id, userID int) error {
 	err := s.repo.Delete(ctx, id, userID)
 	if err != nil {
 		return err
 	}
 	return nil
-}	
+}
 
-func(s *TaskService) Update(ctx context.Context, id, userID int, t models.Task) (models.Task, error) {
+func (s *TaskService) Update(ctx context.Context, id, userID int, t models.Task) (models.Task, error) {
 	//Заглушка, далее когда появится поле is-progress нужно будет поменять данную функцию
 	task, err := s.repo.Update(ctx, id, userID, t)
-		if err != nil {
+	if err != nil {
 		return models.Task{}, err
 	}
 	return task, nil

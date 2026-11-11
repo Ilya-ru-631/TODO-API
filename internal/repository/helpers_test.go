@@ -22,6 +22,7 @@ const databaseUrlTest = "postgres://postgres:password@localhost:5432/todo_api_te
 // на отдельную тестовую базу, никогда на рабочую.
 func setupTestDB(t *testing.T) *sql.DB {
 	t.Helper()
+
 	dbUrl := os.Getenv("TEST_DATABASE_URL")
 	if dbUrl == "" {
 		t.Skip("Specify the URL for the database")
@@ -35,7 +36,10 @@ func setupTestDB(t *testing.T) *sql.DB {
 	// Cleanup выполнится после завершения теста, даже если он упал.
 	// Подключение закрывается здесь, а не через defer в тесте.
 	t.Cleanup(func() {
-		db.Close()
+		err := db.Close()
+		if err != nil {
+			t.Errorf("error for closing db: %v", err)
+		}
 	})
 
 	if err := db.PingContext(context.Background()); err != nil {
@@ -105,4 +109,36 @@ func readTestTask(t *testing.T, db *sql.DB, taskID int) models.Task {
 
 	task.Description = nullStringToPtr(desc)
 	return task
+}
+
+// достаёт юзера из бд
+func readTestUser(t *testing.T, db *sql.DB, userID int) models.User {
+	t.Helper()
+
+	var user models.User
+
+	query := "SELECT id, username, password_hash, created_at FROM users WHERE id = $1"
+	row := db.QueryRowContext(context.Background(), query, userID)
+
+	if err := row.Scan(&user.ID, &user.Username, &user.PasswordHash, &user.CreatedAt); err != nil {
+		t.Fatalf("failed to read user %d: %v", userID, err)
+	}
+
+	return user
+}
+
+// считает количество пользователей с одиннаковым именем
+func countUserInDB(t *testing.T, db *sql.DB, username string) int {
+	t.Helper()
+
+	count := 0
+
+	query := "SELECT COUNT(*) FROM users WHERE username = $1"
+	row := db.QueryRowContext(context.Background(), query, username)
+
+	if err := row.Scan(&count); err != nil {
+		t.Fatalf("failed to count users %q: %v", username, err)
+	}
+
+	return count
 }

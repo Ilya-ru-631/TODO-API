@@ -202,8 +202,8 @@ func Test_Create(t *testing.T) {
 		wantErr error
 	}{
 		{
-			name: "good_test",
-			taskCr: firstTask,
+			name:    "good_test",
+			taskCr:  firstTask,
 			wantErr: nil,
 		},
 	}

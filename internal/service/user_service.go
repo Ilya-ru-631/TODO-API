@@ -19,11 +19,20 @@ func NewUserService(repo repository.UserRepository, secret []byte) *UserService 
 }
 
 var (
-	ErrUsernameTaken   = errors.New("username is already taken")
 	ErrPasswordOrLogin = errors.New("wrong password or login")
+	ErrUsernameIsTaken = errors.New("username is already taken in service")
 )
 
 func (s *UserService) Register(ctx context.Context, username, password string) (string, error) {
+	_, err := s.repo.GetByUsername(ctx, username)
+	if err == nil {
+		return "", ErrUsernameIsTaken
+	}
+
+	if !errors.Is(err, repository.ErrUserNotFound) {
+		return "", fmt.Errorf("error for get by username: %w", err)
+	}
+
 	hashPas, err := auth.HashPassword(password)
 	if err != nil {
 		return "", err
@@ -34,16 +43,11 @@ func (s *UserService) Register(ctx context.Context, username, password string) (
 		PasswordHash: hashPas,
 	}
 
-	_, err = s.repo.GetByUsername(ctx, username)
-	if err == nil {
-		return "", ErrUsernameTaken
-	}
-
-	if !errors.Is(err, repository.ErrUserNotFound) {
-		return "", err
-	}
-
 	result, err := s.repo.Create(ctx, user)
+	if errors.Is(err, repository.ErrUsernameTaken) {
+		return "", errors.Join(err, ErrUsernameIsTaken)
+	}
+
 	if err != nil {
 		return "", err
 	}

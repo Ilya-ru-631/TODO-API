@@ -34,7 +34,7 @@ func Test_AuthMiddleware_ValidToken(t *testing.T) {
 
 	h.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusOK{
+	if rec.Code != http.StatusOK {
 		t.Errorf("got: %v, want: %v", rec.Code, http.StatusOK)
 	}
 

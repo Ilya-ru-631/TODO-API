@@ -79,7 +79,7 @@ func Test_Register(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error for parsing token: %v", err)
 	}
-	
+
 	if user_id != wantUserID {
 		t.Errorf("got userID: %v, want userID: %v", user_id, wantUserID)
 	}
@@ -327,19 +327,19 @@ func Test_Login_InvalidInput(t *testing.T) {
 		body string
 	}{
 		{
-			name: "empty_username", 
+			name: "empty_username",
 			body: `{"username":"","password":"x"}`,
 		},
 		{
-			name: "empty_password", 
+			name: "empty_password",
 			body: `{"username":"x","password":""}`,
 		},
 		{
-			name: "no_fields", 
+			name: "no_fields",
 			body: `{}`,
 		},
 		{
-			name: "invalid_json", 
+			name: "invalid_json",
 			body: `{invalid json}`,
 		},
 	}

@@ -530,46 +530,46 @@ func Test_IntrenalError(t *testing.T) {
 	h := NewTaskHandler(svc, sloger)
 
 	tests := []struct {
-		name string
+		name    string
 		handler http.HandlerFunc
-		method string
-		id string
-		body string
+		method  string
+		id      string
+		body    string
 	}{
 		{
-			name: "GetAll",
+			name:    "GetAll",
 			handler: h.GetAll,
-			method: "GET",
-			id: "",
-			body: "",
+			method:  "GET",
+			id:      "",
+			body:    "",
 		},
 		{
-			name: "GetByID",
+			name:    "GetByID",
 			handler: h.GetByID,
-			method: "GET",
-			id: "2",
-			body: "",
+			method:  "GET",
+			id:      "2",
+			body:    "",
 		},
 		{
-			name: "Create",
+			name:    "Create",
 			handler: h.Create,
-			method: "POST",
-			id: "",
-			body: `{"title" : "Dinner"}`,
+			method:  "POST",
+			id:      "",
+			body:    `{"title" : "Dinner"}`,
 		},
 		{
-			name: "Update",
+			name:    "Update",
 			handler: h.Update,
-			method: "PUT",
-			id: "2",
-			body: `{"title" : "Dinner"}`,
+			method:  "PUT",
+			id:      "2",
+			body:    `{"title" : "Dinner"}`,
 		},
 		{
-			name: "Delete",
+			name:    "Delete",
 			handler: h.Delete,
-			method: "DELETE",
-			id: "2",
-			body: "",
+			method:  "DELETE",
+			id:      "2",
+			body:    "",
 		},
 	}
 
@@ -835,7 +835,6 @@ func Test_Update_BodyTooLarge(t *testing.T) {
 	}
 }
 
-
 func Test_Delete(t *testing.T) {
 	wantTaskID := 2
 	wantUserID := 2
@@ -931,4 +930,3 @@ func Test_Delete_NotFound(t *testing.T) {
 		t.Errorf("got: %v, want: %v", rec.Code, http.StatusNotFound)
 	}
 }
-

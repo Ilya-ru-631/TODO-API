@@ -15,11 +15,11 @@ type responseWriterWrapper struct {
 func newResponseWriter(w http.ResponseWriter) *responseWriterWrapper {
 	return &responseWriterWrapper{
 		ResponseWriter: w,
-		statusCode: 200,
+		statusCode:     200,
 	}
 }
 
-func(r *responseWriterWrapper) WriteHeader(code int)  {
+func (r *responseWriterWrapper) WriteHeader(code int) {
 	r.statusCode = code
 	r.ResponseWriter.WriteHeader(code)
 }

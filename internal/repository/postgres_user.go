@@ -6,6 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"todo_api/internal/models"
+
+	"github.com/jackc/pgx/v5/pgconn"
+)
+
+var (
+	ErrUsernameTaken = errors.New("username is already taken")
 )
 
 type UserPostgresRepository struct {
@@ -25,6 +31,10 @@ func (up *UserPostgresRepository) Create(ctx context.Context, u models.User) (mo
 	row := up.db.QueryRowContext(ctx, query, u.Username, u.PasswordHash)
 
 	if err := row.Scan(&u.ID); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return models.User{}, errors.Join(ErrUsernameTaken, pgErr)
+		}
 		return models.User{}, err
 	}
 

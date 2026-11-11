@@ -37,7 +37,7 @@ func (a *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	reg, err := a.service.Register(r.Context(), req.Username, req.Password)
 	if err != nil {
-		if errors.Is(err, service.ErrUsernameTaken) {
+		if errors.Is(err, service.ErrUsernameIsTaken) {
 			writeError(w, "username is already taken", http.StatusConflict)
 			return
 		}
