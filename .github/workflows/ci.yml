@@ -1,0 +1,26 @@
+name: tests
+
+on: [push]
+
+jobs:
+  test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup and Go
+        uses: actions/setup-go@v6
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build
+        run: go build ./...
+
+      - name: Test
+        run: go test ./...
+
+
