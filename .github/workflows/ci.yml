@@ -34,6 +34,16 @@ jobs:
       - name: Install dependencies
         run: go mod download
 
+      - name: Install goose
+        run: go install github.com/pressly/goose/v3/cmd/goose@latest
+
+      - name: Run Migrations
+        env:
+          GOOSE_DRIVER: postgres
+          GOOSE_DBSTRING: "postgres://postgres:password@localhost:5432/todo_api_test?sslmode=disable"
+          GOOSE_MIGRATION_DIR: migrations
+        run: goose up
+
       - name: Build
         run: go build ./...
 
