@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -32,7 +33,10 @@ func NewTaskHandler(svc *service.TaskService, log *slog.Logger) *TaskHandler {
 func writeError(w http.ResponseWriter, msg string, code int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(ErrorResponse{Error: msg})
+
+	if err := json.NewEncoder(w).Encode(ErrorResponse{Error: msg}); err != nil {
+		log.Printf("error to encode message: %v", err)
+	}
 }
 
 func (h *TaskHandler) GetAll(w http.ResponseWriter, r *http.Request) {
@@ -104,7 +108,10 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, "incorrect Json: "+err.Error(), http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
+	defer func() {
+		_ = r.Body.Close()
+	}()
+
 
 	if strings.TrimSpace(req.Title) == "" {
 		writeError(w, "empty title", http.StatusBadRequest)

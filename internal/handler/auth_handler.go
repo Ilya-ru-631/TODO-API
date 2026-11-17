@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"log/slog"
 	"net/http"
 	"todo_api/internal/service"
@@ -28,7 +29,9 @@ func (a *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		writeError(w, "incorrect json: "+err.Error(), http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
+	defer func() {
+		_ = r.Body.Close()
+	}()
 
 	if req.Username == "" || req.Password == "" {
 		writeError(w, "username and password not be empty", http.StatusBadRequest)
@@ -55,8 +58,10 @@ func (a *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(result)
 
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		log.Printf("failed to encode response: %v", err)
+	}
 }
 
 func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +71,9 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		writeError(w, "incorrect json"+err.Error(), http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
+	defer func() {
+		_ = r.Body.Close()
+	}()
 
 	if req.Username == "" || req.Password == "" {
 		writeError(w, "username and password must not be empty", http.StatusBadRequest)
@@ -92,5 +99,8 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(result)
+
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		log.Printf("failed to encode response: %v", err)
+	}
 }
