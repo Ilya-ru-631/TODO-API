@@ -112,7 +112,6 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		_ = r.Body.Close()
 	}()
 
-
 	if strings.TrimSpace(req.Title) == "" {
 		writeError(w, "empty title", http.StatusBadRequest)
 		return

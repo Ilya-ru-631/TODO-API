@@ -29,7 +29,7 @@ func (p *PostgresRepo) GetAll(ctx context.Context, userID int) ([]models.Task, e
 		return nil, err
 	}
 	defer func() {
-		_ = rows.Close() 
+		_ = rows.Close()
 	}()
 
 	tasks := make([]models.Task, 0)
