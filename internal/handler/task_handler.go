@@ -57,7 +57,10 @@ func (h *TaskHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tasks)
+
+	if err := json.NewEncoder(w).Encode(tasks); err != nil {
+		log.Printf("failed to encode response: %v", err)
+	}
 }
 
 func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
@@ -90,7 +93,10 @@ func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(task)
+
+	if err := json.NewEncoder(w).Encode(task); err != nil {
+		log.Printf("failed to encode response: %v", err)
+	}
 }
 
 func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -133,7 +139,10 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(task)
+
+	if err := json.NewEncoder(w).Encode(task); err != nil {
+		log.Printf("failed to encode response: %v", err)
+	}
 }
 
 func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -151,7 +160,9 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 		writeError(w, "incorrect data: "+err.Error(), http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
+	defer func() {
+		_ = r.Body.Close()
+	}()
 
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
@@ -185,7 +196,10 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(task)
+
+	if err := json.NewEncoder(w).Encode(task); err != nil {
+		log.Printf("failed to encode response: %v", err)
+	}
 }
 
 func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
