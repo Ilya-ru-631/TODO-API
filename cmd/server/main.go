@@ -53,7 +53,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("error closing database connection: %v", err)
+		}
+	}()
 
 	if err := db.PingContext(context.Background()); err != nil {
 		log.Fatal("failed to connect to database: ", err)

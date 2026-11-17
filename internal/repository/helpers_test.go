@@ -10,9 +10,6 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-// databaseUrlTest - не используется, оставлена ради примера
-const databaseUrlTest = "postgres://postgres:password@localhost:5432/todo_api_test?sslmode=disable"
-
 // setupTestDB подключается к тестовой БД и очищает таблицы, чтобы каждый тест
 // начинал с чистого состояния. Если TEST_DATABASE_URL не задана, тест
 // пропускается (t.Skip), а не падает: так go test ./... работает и на машине
