@@ -9,9 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	//"todo_api/internal/models"
-
-	"todo_api/internal/repository"
 	"todo_api/internal/service"
 )
 
@@ -78,7 +75,7 @@ func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	task, err := h.service.GetByID(r.Context(), id, userID)
 	if err != nil {
-		if errors.Is(err, repository.ErrTaskNotFound) {
+		if errors.Is(err, service.ErrTaskNotFound) {
 			writeError(w, "not found task with this id", http.StatusNotFound)
 			return
 		}
@@ -177,11 +174,11 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	task, err := h.service.Update(r.Context(), id, userID, req.ToTask())
 	if err != nil {
-		if errors.Is(err, repository.ErrTaskNotFound) {
+		if errors.Is(err, service.ErrTaskNotFound) {
 			writeError(w, "not found this task", http.StatusNotFound)
 			return
 		}
-		if errors.Is(err, repository.ErrValidation) {
+		if errors.Is(err, service.ErrValidation) {
 			writeError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -216,11 +213,11 @@ func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.Delete(r.Context(), id, userID); err != nil {
-		if errors.Is(err, repository.ErrTaskNotFound) {
+		if errors.Is(err, service.ErrTaskNotFound) {
 			writeError(w, "not found this task", http.StatusNotFound)
 			return
 		}
-		if errors.Is(err, repository.ErrValidation) {
+		if errors.Is(err, service.ErrValidation) {
 			writeError(w, err.Error(), http.StatusBadRequest)
 			return
 		}

@@ -24,6 +24,7 @@ func nullStringToPtr(ns sql.NullString) *string {
 }
 
 func (p *PostgresRepo) GetAll(ctx context.Context, userID int) ([]models.Task, error) {
+	// order by id ask (add)
 	rows, err := p.db.QueryContext(ctx, "SELECT id, title, description, done, user_id FROM tasks WHERE user_id = $1", userID)
 	if err != nil {
 		return nil, err
@@ -110,6 +111,7 @@ func (p *PostgresRepo) Update(ctx context.Context, id, userID int, t models.Task
 	}
 
 	t.ID = id
+	t.UserID = userID
 	return t, nil
 }
 

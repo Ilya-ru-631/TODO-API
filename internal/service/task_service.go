@@ -16,7 +16,10 @@ func NewTaskService(repo repository.TaskRepository) *TaskService {
 }
 
 var (
-	ErrDuplicateTitle = errors.New("a task with such a title already exists")
+	ErrDuplicateTitle    = errors.New("a task with such a title already exists")
+	ErrActiveTitleActive = errors.New("active tasks title already exists")
+	ErrTaskNotFound      = errors.New("taks nopt found")
+	ErrValidation        = errors.New("error validation")
 )
 
 func (s *TaskService) Create(ctx context.Context, userID int, t models.Task) (models.Task, error) {
@@ -32,11 +35,7 @@ func (s *TaskService) Create(ctx context.Context, userID int, t models.Task) (mo
 	}
 
 	t.UserID = userID
-	res, err := s.repo.Create(ctx, t)
-	if err != nil {
-		return models.Task{}, err
-	}
-	return res, nil
+	return TaskResult(s.repo.Create(ctx, t))
 }
 
 func (s *TaskService) GetAll(ctx context.Context, userID int) ([]models.Task, error) {
@@ -56,18 +55,17 @@ func (s *TaskService) GetByID(ctx context.Context, id, userID int) (models.Task,
 }
 
 func (s *TaskService) Delete(ctx context.Context, id, userID int) error {
-	err := s.repo.Delete(ctx, id, userID)
-	if err != nil {
-		return err
-	}
-	return nil
+	return s.repo.Delete(ctx, id, userID)
 }
 
 func (s *TaskService) Update(ctx context.Context, id, userID int, t models.Task) (models.Task, error) {
 	//Заглушка, далее когда появится поле is-progress нужно будет поменять данную функцию
-	task, err := s.repo.Update(ctx, id, userID, t)
-	if err != nil {
-		return models.Task{}, err
+	return TaskResult(s.repo.Update(ctx, id, userID, t))
+}
+
+func TaskResult(t models.Task, err error) (models.Task, error) {
+	if errors.Is(err, ErrActiveTitleActive) {
+		return models.Task{}, ErrDuplicateTitle
 	}
-	return task, nil
+	return t, nil
 }
