@@ -88,6 +88,8 @@ func main() {
 	r.Post("/register", authH.Register)
 	r.Post("/login", authH.Login)
 
+	r.Handle("/*", http.FileServer(http.Dir("web")))
+
 	ch := make(chan error)
 	addr := getEnv("SERVER_ADDR", "localhost:8080")
 

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Мои задачи</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Экран входа -->
+  <main id="auth-screen" class="screen" hidden>
+    <h1>Мои задачи</h1>
+    <form id="auth-form" class="card">
+      <label for="username">Имя пользователя</label>
+      <input id="username" name="username" autocomplete="username" required>
+
+      <label for="password">Пароль</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+
+      <p id="auth-error" class="error" role="alert"></p>
+
+      <div class="row">
+        <button type="submit" id="btn-login" class="primary">Войти</button>
+        <button type="button" id="btn-register">Создать аккаунт</button>
+      </div>
+    </form>
+  </main>
+
+  <!-- Экран задач -->
+  <main id="app-screen" class="screen" hidden>
+    <header class="topbar">
+      <h1>Мои задачи</h1>
+      <button id="btn-logout" class="link">Выйти</button>
+    </header>
+
+    <form id="task-form" class="card">
+      <label for="title">Новая задача</label>
+      <input id="title" name="title" placeholder="Что нужно сделать?" required>
+      <input id="description" name="description" placeholder="Описание (необязательно)">
+      <button type="submit" class="primary">Добавить задачу</button>
+    </form>
+
+    <p id="task-error" class="error" role="alert"></p>
+
+    <div class="filters" role="group" aria-label="Фильтр">
+      <button data-filter="all" class="active">Все</button>
+      <button data-filter="active">Активные</button>
+      <button data-filter="done">Выполненные</button>
+    </div>
+
+    <ul id="task-list"></ul>
+    <p id="empty" class="empty" hidden>Задач пока нет. Добавьте первую выше.</p>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
