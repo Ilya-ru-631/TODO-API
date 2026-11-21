@@ -17,9 +17,9 @@ func NewTaskService(repo repository.TaskRepository) *TaskService {
 
 var (
 	ErrDuplicateTitle    = errors.New("a task with such a title already exists")
-	ErrActiveTitleActive = errors.New("active tasks title already exists")
-	ErrTaskNotFound      = errors.New("taks nopt found")
-	ErrValidation        = errors.New("error validation")
+	ErrActiveTitleActive = repository.ErrActiveTitleActive
+	ErrTaskNotFound      = repository.ErrTaskNotFound
+	ErrValidation        = repository.ErrValidation
 )
 
 func (s *TaskService) Create(ctx context.Context, userID int, t models.Task) (models.Task, error) {
@@ -64,8 +64,11 @@ func (s *TaskService) Update(ctx context.Context, id, userID int, t models.Task)
 }
 
 func TaskResult(t models.Task, err error) (models.Task, error) {
-	if errors.Is(err, ErrActiveTitleActive) {
-		return models.Task{}, ErrDuplicateTitle
+	if err != nil {
+		if errors.Is(err, ErrActiveTitleActive) {
+			return models.Task{}, ErrDuplicateTitle
+		}
+		return models.Task{}, err
 	}
 	return t, nil
 }

@@ -7,9 +7,10 @@ import (
 )
 
 var (
-	ErrTaskNotFound = errors.New("task not found")
-	ErrValidation   = errors.New("validation failed")
-	ErrUserNotFound = errors.New("user not found")
+	ErrTaskNotFound      = errors.New("task not found")
+	ErrValidation        = errors.New("validation failed")
+	ErrUserNotFound      = errors.New("user not found")
+	ErrActiveTitleActive = errors.New("active tasks title already exists")
 )
 
 type TaskRepository interface {
