@@ -11,13 +11,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
 
 	"todo_api/internal/handler"
 	"todo_api/internal/logger"
 	"todo_api/internal/repository"
+	"todo_api/internal/router"
 	"todo_api/internal/service"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -71,24 +70,7 @@ func main() {
 	svcUser := service.NewUserService(userRepo, []byte(secret))
 	authH := handler.NewAuthHandler(svcUser, sloger)
 
-	r := chi.NewRouter()
-
-	r.Use(logger.LoggerMiddleware(sloger))
-	r.Use(middleware.Recoverer)
-
-	r.Route("/tasks", func(r chi.Router) {
-		r.Use(handler.AuthMiddleware([]byte(secret)))
-		r.Get("/", h.GetAll)
-		r.Get("/{id}", h.GetByID)
-		r.Post("/", h.Create)
-		r.Put("/{id}", h.Update)
-		r.Delete("/{id}", h.Delete)
-	})
-
-	r.Post("/register", authH.Register)
-	r.Post("/login", authH.Login)
-
-	r.Handle("/*", http.FileServer(http.Dir("web")))
+	r := router.NewRouter(sloger, h, authH, secret)
 
 	ch := make(chan error)
 	addr := getEnv("SERVER_ADDR", "localhost:8080")

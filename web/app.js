@@ -1,11 +1,16 @@
 "use strict";
 
+const API_PREFIX = "/api/v1";
+
 const CONFIG = {
   API_BASE: "",                  // "" = тот же адрес, что и страница. Иначе например "http://localhost:8080"
-  LOGIN_URL: "/login",           // POST {username, password} -> токен
-  REGISTER_URL: "/register",     // POST {username, password}
-  TASKS_URL: "/tasks",           // GET список, POST создание
-  TASK_URL: (id) => `/tasks/${id}`, // GET / PUT / DELETE одной задачи
+
+  LOGIN_URL: API_PREFIX + "/login",           // POST {username, password} -> токен
+  REGISTER_URL: API_PREFIX +"/register",     // POST {username, password}
+  TASKS_URL: API_PREFIX + "/tasks",           // GET список, POST создание
+
+  TASK_URL: (id) => `${API_PREFIX}/tasks/${id}`, // GET / PUT / DELETE одной задачи
+  
   TOKEN_FIELDS: ["token", "access_token", "jwt"], // в каком поле ответа /login лежит токен
   UPDATE_METHOD: "PUT",          
 };
