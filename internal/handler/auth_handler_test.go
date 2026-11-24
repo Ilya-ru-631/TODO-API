@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"todo_api/internal/apierror"
 	"todo_api/internal/auth"
 	"todo_api/internal/logger"
 	"todo_api/internal/models"
@@ -100,22 +101,31 @@ func Test_Register_InvalidInput(t *testing.T) {
 	tests := []struct {
 		name                string
 		usernameAndPassword string
+		wantCode            string
+		wantField           string
 	}{
 		{
 			name:                "empty_username",
 			usernameAndPassword: `{"username" : "", "password" : "x"}`,
+			wantCode:            apierror.CodeValidation,
+			wantField:           "username",
 		},
 		{
 			name:                "empty_password",
 			usernameAndPassword: `{"username" : "x", "password" : ""}`,
+			wantCode:            apierror.CodeValidation,
+			wantField:           "password",
 		},
 		{
 			name:                "no_fields",
 			usernameAndPassword: `{}`,
+			wantCode:            apierror.CodeValidation,
+			wantField:           "username",
 		},
 		{
 			name:                "invalid_json",
 			usernameAndPassword: `{invalid json}`,
+			wantCode:            apierror.CodeInvalidJSON,
 		},
 	}
 
@@ -129,8 +139,23 @@ func Test_Register_InvalidInput(t *testing.T) {
 			rec := httptest.NewRecorder()
 
 			h.Register(rec, req)
-			if rec.Code != http.StatusBadRequest {
-				t.Errorf("got: %v, want: %v", rec.Code, http.StatusBadRequest)
+			if tt.name == "invalid_json" {
+				if rec.Code != http.StatusBadRequest {
+					t.Errorf("got: %v, want: %v", rec.Code, http.StatusBadRequest)
+				}
+			}
+
+			var testErr apierror.Response
+			if err := json.NewDecoder(rec.Body).Decode(&testErr); err != nil {
+				t.Fatalf("error for decode body: %v", err)
+			}
+
+			if testErr.Code != tt.wantCode {
+				t.Fatalf("got code: %v, want code: %v", testErr.Code, tt.wantCode)
+			}
+
+			if testErr.Field != tt.wantField {
+				t.Errorf("got field: %v, want field: %v", testErr.Field, tt.wantField)
 			}
 		})
 	}
@@ -146,6 +171,7 @@ func Test_Register_RepoErrors(t *testing.T) {
 		createErr   error
 		wantStatus  int
 		wantCreated bool
+		wantCode    string
 	}{
 		{
 			name:        "username_taken",
@@ -153,12 +179,14 @@ func Test_Register_RepoErrors(t *testing.T) {
 			getErr:      nil,
 			wantStatus:  http.StatusConflict,
 			wantCreated: false,
+			wantCode:    apierror.CodeUsernameTaken,
 		},
 		{
 			name:        "get_by_username_fails",
 			getErr:      errDB,
 			wantStatus:  http.StatusInternalServerError,
 			wantCreated: false,
+			wantCode:    apierror.CodeInternal,
 		},
 		{
 			name:        "create_fails",
@@ -166,6 +194,7 @@ func Test_Register_RepoErrors(t *testing.T) {
 			createErr:   errDB,
 			wantStatus:  http.StatusInternalServerError,
 			wantCreated: true,
+			wantCode:    apierror.CodeInternal,
 		},
 	}
 
@@ -196,6 +225,15 @@ func Test_Register_RepoErrors(t *testing.T) {
 			}
 			if created != tt.wantCreated {
 				t.Errorf("repo.Create called: %v, want: %v", created, tt.wantCreated)
+			}
+
+			var testErr apierror.Response
+			if err := json.NewDecoder(rec.Body).Decode(&testErr); err != nil {
+				t.Fatalf("error for decode body: %v", err)
+			}
+
+			if testErr.Code != tt.wantCode {
+				t.Errorf("got code: %v, want code: %v", testErr.Code, tt.wantCode)
 			}
 		})
 	}
@@ -264,18 +302,21 @@ func Test_Login_WrongCredentials(t *testing.T) {
 		getUser  models.User
 		getErr   error
 		password string
+		wantCode string
 	}{
 		{
 			name:     "wrong_password",
 			getUser:  models.User{ID: 5, Username: "Shev", PasswordHash: hash},
 			getErr:   nil,
 			password: "wrong",
+			wantCode: apierror.CodeInvalidCredentials,
 		},
 		{
 			name:     "user_not_found",
 			getUser:  models.User{},
 			getErr:   repository.ErrUserNotFound,
 			password: realPassword,
+			wantCode: apierror.CodeInvalidCredentials,
 		},
 	}
 
@@ -299,9 +340,19 @@ func Test_Login_WrongCredentials(t *testing.T) {
 			rec := httptest.NewRecorder()
 
 			h.Login(rec, req)
-
+		
 			if rec.Code != http.StatusUnauthorized {
 				t.Errorf("got: %v, want: %v", rec.Code, http.StatusUnauthorized)
+			}
+			
+
+			var testErr apierror.Response
+			if err := json.NewDecoder(rec.Body).Decode(&testErr); err != nil {
+				t.Fatalf("error for decode body: %v", err)
+			}
+
+			if testErr.Code != tt.wantCode {
+				t.Errorf("got code: %v, want code: %v", testErr.Code, tt.wantCode)
 			}
 		})
 	}

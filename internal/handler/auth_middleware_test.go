@@ -1,11 +1,10 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
+	"todo_api/internal/apierror"
 	"todo_api/internal/auth"
 )
 
@@ -64,46 +63,42 @@ func Test_AuthMiddleware_Crash(t *testing.T) {
 		t.Fatalf("error for generate token: %v", err)
 	}
 
+	const wantStatus = http.StatusUnauthorized
+	const nextCalled = false
+
 	tests := []struct {
 		name          string
 		authorization string
-		wantStatus    int
-		nextCalled    bool
+		wantCode      string
 	}{
 		{
-			name:       "no_header",
-			wantStatus: http.StatusUnauthorized,
-			nextCalled: false,
+			name:     "no_header",
+			wantCode: apierror.CodeInvalidToken,
 		},
 		{
 			name:          "trash_token",
 			authorization: "Bearer abc",
-			wantStatus:    http.StatusUnauthorized,
-			nextCalled:    false,
+			wantCode:      apierror.CodeInvalidToken,
 		},
 		{
 			name:          "alien_secret",
 			authorization: "Bearer " + token,
-			wantStatus:    http.StatusUnauthorized,
-			nextCalled:    false,
+			wantCode:      apierror.CodeInvalidToken,
 		},
 		{
 			name:          "no_bearer",
 			authorization: validToken,
-			wantStatus:    http.StatusUnauthorized,
-			nextCalled:    false,
+			wantCode:      apierror.CodeInvalidToken,
 		},
 		{
 			name:          "invalid_case_bearer",
 			authorization: "bearer " + token,
-			wantStatus:    http.StatusUnauthorized,
-			nextCalled:    false,
+			wantCode:      apierror.CodeInvalidToken,
 		},
 		{
 			name:          "empty_token",
 			authorization: "Bearer ",
-			wantStatus:    http.StatusUnauthorized,
-			nextCalled:    false,
+			wantCode:      apierror.CodeInvalidToken,
 		},
 	}
 
@@ -122,27 +117,18 @@ func Test_AuthMiddleware_Crash(t *testing.T) {
 
 			h.ServeHTTP(rec, req)
 
-			if rec.Code != tt.wantStatus {
-				t.Errorf("got: %v, want: %v", rec.Code, tt.wantStatus)
+			if rec.Code != wantStatus {
+				t.Errorf("got: %v, want: %v", rec.Code, wantStatus)
 			}
 
-			if called != tt.nextCalled {
-				t.Errorf("got: %v, want: %v", called, tt.nextCalled)
+			if called != nextCalled {
+				t.Errorf("got: %v, want: %v", called, nextCalled)
 			}
 
-			var testErr ErrorResponse
-			if err := json.NewDecoder(rec.Body).Decode(&testErr); err != nil {
-				t.Fatalf("error for decode body: %v", err)
-			}
+			testErr := decodeAPIError(t, rec)
 
-			if testErr.Error == "" {
-				t.Errorf("empty error field")
-			}
-
-			rr := rec.Result()
-			contentType := rr.Header.Get("Content-type")
-			if !strings.HasPrefix(contentType, "application/json") {
-				t.Errorf("header do not have application/json")
+			if testErr.Code != tt.wantCode {
+				t.Fatalf("got code: %v, want code: %v", testErr.Code, tt.wantCode)
 			}
 
 		})

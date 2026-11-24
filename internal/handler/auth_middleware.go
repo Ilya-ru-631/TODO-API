@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"todo_api/internal/apierror"
 	"todo_api/internal/auth"
 )
 
@@ -17,13 +18,13 @@ func AuthMiddleware(secret []byte) func(http.Handler) http.Handler {
 			token := r.Header.Get("Authorization")
 			token, found := strings.CutPrefix(token, "Bearer ")
 			if !found {
-				writeError(w, "invalid or expired token", http.StatusUnauthorized)
+				apierror.Write(w, http.StatusUnauthorized, apierror.CodeInvalidToken, "Invalid or expired token")
 				return
 			}
 
 			userId, err := auth.ParsingToken(token, secret)
 			if err != nil {
-				writeError(w, "invalid or expired token", http.StatusUnauthorized)
+				apierror.Write(w, http.StatusUnauthorized, apierror.CodeInvalidToken, "Invalid or expired token")
 				return
 			}
 

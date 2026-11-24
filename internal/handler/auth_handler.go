@@ -6,6 +6,8 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"strings"
+	"todo_api/internal/apierror"
 	"todo_api/internal/service"
 )
 
@@ -26,29 +28,33 @@ func (a *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req RegisterRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, "incorrect json: "+err.Error(), http.StatusBadRequest)
+		apierror.Write(w, http.StatusBadRequest, apierror.CodeInvalidJSON, "Incorrect json")
 		return
 	}
 	defer func() {
 		_ = r.Body.Close()
 	}()
 
-	if req.Username == "" || req.Password == "" {
-		writeError(w, "username and password not be empty", http.StatusBadRequest)
+	if strings.TrimSpace(req.Username) == "" {
+		apierror.WriteValidation(w, apierror.CodeValidation, "Username must not be empty", "username")
+		return
+	}
+	if strings.TrimSpace(req.Password) == "" {
+		apierror.WriteValidation(w, apierror.CodeValidation, "Password must not be empty", "password")
 		return
 	}
 
 	reg, err := a.service.Register(r.Context(), req.Username, req.Password)
 	if err != nil {
 		if errors.Is(err, service.ErrUsernameIsTaken) {
-			writeError(w, "username is already taken", http.StatusConflict)
+			apierror.Write(w, http.StatusConflict, apierror.CodeUsernameTaken, "Username is already taken")
 			return
 		}
 		a.log.ErrorContext(r.Context(), "registration failed",
 			slog.String("username", req.Username),
 			slog.Any("err", err),
 		)
-		writeError(w, "error for a server side", http.StatusInternalServerError)
+		apierror.Write(w, http.StatusInternalServerError, apierror.CodeInternal, "Internal server error")
 		return
 	}
 
@@ -68,29 +74,33 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, "incorrect json"+err.Error(), http.StatusBadRequest)
+		apierror.Write(w, http.StatusBadRequest, apierror.CodeInvalidJSON, "Incorrect json")
 		return
 	}
 	defer func() {
 		_ = r.Body.Close()
 	}()
 
-	if req.Username == "" || req.Password == "" {
-		writeError(w, "username and password must not be empty", http.StatusBadRequest)
+	if strings.TrimSpace(req.Username) == "" {
+		apierror.WriteValidation(w, apierror.CodeValidation, "Username must not be empty", "username")
+		return
+	}
+	if strings.TrimSpace(req.Password) == "" {
+		apierror.WriteValidation(w, apierror.CodeValidation, "Password must not be empty", "password")
 		return
 	}
 
 	reg, err := a.service.Login(r.Context(), req.Username, req.Password)
 	if err != nil {
 		if errors.Is(err, service.ErrPasswordOrLogin) {
-			writeError(w, "wrong username or password", http.StatusUnauthorized)
+			apierror.Write(w, http.StatusUnauthorized, apierror.CodeInvalidCredentials, "Invalid username or password")
 			return
 		}
 		a.log.ErrorContext(r.Context(), "login failed",
 			slog.String("username", req.Username),
 			slog.Any("err", err),
 		)
-		writeError(w, "error on server side", http.StatusInternalServerError)
+		apierror.Write(w, http.StatusInternalServerError, apierror.CodeInternal, "Internal server error")
 		return
 	}
 

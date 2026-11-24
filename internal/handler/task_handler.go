@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"todo_api/internal/apierror"
 	"todo_api/internal/service"
 )
 
@@ -17,29 +18,16 @@ type TaskHandler struct {
 	log     *slog.Logger
 }
 
-type ErrorResponse struct {
-	Error string `json:"error"`
-}
-
 var LimitForBodyLength = 500
 
 func NewTaskHandler(svc *service.TaskService, log *slog.Logger) *TaskHandler {
 	return &TaskHandler{service: svc, log: log}
 }
 
-func writeError(w http.ResponseWriter, msg string, code int) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-
-	if err := json.NewEncoder(w).Encode(ErrorResponse{Error: msg}); err != nil {
-		log.Printf("error to encode message: %v", err)
-	}
-}
-
 func (h *TaskHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(userIDKey).(int)
 	if !ok {
-		writeError(w, "unauthorized", http.StatusUnauthorized)
+		apierror.Write(w, http.StatusUnauthorized, apierror.CodeUnauthorized, "Unauthorized user")
 		return
 	}
 
@@ -49,7 +37,7 @@ func (h *TaskHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 			slog.Int("user_id", userID),
 			slog.Any("err", err),
 		)
-		writeError(w, "internal server error", http.StatusInternalServerError)
+		apierror.Write(w, http.StatusInternalServerError, apierror.CodeInternal, "Internal server error")
 		return
 	}
 
@@ -63,20 +51,20 @@ func (h *TaskHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		writeError(w, "id must be a number", http.StatusBadRequest)
+		apierror.Write(w, http.StatusBadRequest, apierror.CodeInvalidID, "Id must be a number")
 		return
 	}
 
 	userID, ok := r.Context().Value(userIDKey).(int)
 	if !ok {
-		writeError(w, "unauthorized", http.StatusUnauthorized)
+		apierror.Write(w, http.StatusUnauthorized, apierror.CodeUnauthorized, "Unauthorized user")
 		return
 	}
 
 	task, err := h.service.GetByID(r.Context(), id, userID)
 	if err != nil {
 		if errors.Is(err, service.ErrTaskNotFound) {
-			writeError(w, "not found task with this id", http.StatusNotFound)
+			apierror.Write(w, http.StatusNotFound, apierror.CodeTaskNotFound, "Not found task with this id")
 			return
 		}
 
@@ -85,7 +73,7 @@ func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 			slog.Int("user_id", userID),
 			slog.Any("err", err),
 		)
-		writeError(w, "error on the server side", http.StatusInternalServerError)
+		apierror.Write(w, http.StatusInternalServerError, apierror.CodeInternal, "Internal server error")
 		return
 	}
 
@@ -99,7 +87,7 @@ func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(userIDKey).(int)
 	if !ok {
-		writeError(w, "unauthorized", http.StatusUnauthorized)
+		apierror.Write(w, http.StatusUnauthorized, apierror.CodeUnauthorized, "Unauthorized user")
 		return
 	}
 
@@ -108,29 +96,32 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, int64(LimitForBodyLength))
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, "incorrect Json: "+err.Error(), http.StatusBadRequest)
+		apierror.Write(w, http.StatusBadRequest, apierror.CodeInvalidJSON, "Incorrect json")
 		return
 	}
 	defer func() {
 		_ = r.Body.Close()
 	}()
 
-	if strings.TrimSpace(req.Title) == "" {
-		writeError(w, "empty title", http.StatusBadRequest)
+	titleClear := strings.TrimSpace(req.Title)
+	if titleClear == "" {
+		apierror.WriteValidation(w, apierror.CodeValidation, "Empty title", "title")
 		return
 	}
+
+	req.Title = titleClear
 
 	task, err := h.service.Create(r.Context(), userID, req.ToTask())
 	if err != nil {
 		if errors.Is(err, service.ErrDuplicateTitle) {
-			writeError(w, "a task with such a title already exists", http.StatusConflict)
+			apierror.Write(w, http.StatusConflict, apierror.CodeDuplicateTitle, "A task with such a title already exists")
 			return
 		}
 		h.log.ErrorContext(r.Context(), "failed to create task",
 			slog.Int("user_id", userID),
 			slog.Any("err", err),
 		)
-		writeError(w, "error on a server side", http.StatusInternalServerError)
+		apierror.Write(w, http.StatusInternalServerError, apierror.CodeInternal, "Internal server error")
 		return
 	}
 
@@ -145,7 +136,7 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(userIDKey).(int)
 	if !ok {
-		writeError(w, "unauthorized", http.StatusUnauthorized)
+		apierror.Write(w, http.StatusUnauthorized, apierror.CodeUnauthorized, "Unauthorized user")
 		return
 	}
 
@@ -154,7 +145,7 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, int64(LimitForBodyLength))
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, "incorrect data: "+err.Error(), http.StatusBadRequest)
+		apierror.Write(w, http.StatusBadRequest, apierror.CodeInvalidJSON, "Incorrect json")
 		return
 	}
 	defer func() {
@@ -162,24 +153,27 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
-		writeError(w, "id must be a number", http.StatusBadRequest)
+	if err != nil {	
+		apierror.Write(w, http.StatusBadRequest, apierror.CodeInvalidID, "Id must be a number")
 		return
 	}
 
-	if strings.TrimSpace(req.Title) == "" {
-		writeError(w, "empty title", http.StatusBadRequest)
+	titleClear := strings.TrimSpace(req.Title)
+	if titleClear == "" {
+		apierror.WriteValidation(w, apierror.CodeValidation, "Empty title", "title")
 		return
 	}
+
+	req.Title = titleClear
 
 	task, err := h.service.Update(r.Context(), id, userID, req.ToTask())
 	if err != nil {
 		if errors.Is(err, service.ErrTaskNotFound) {
-			writeError(w, "not found this task", http.StatusNotFound)
+			apierror.Write(w, http.StatusNotFound, apierror.CodeTaskNotFound, "Not found task with this id")
 			return
 		}
 		if errors.Is(err, service.ErrValidation) {
-			writeError(w, err.Error(), http.StatusBadRequest)
+			apierror.WriteValidation(w, apierror.CodeValidation, err.Error(), "title")
 			return
 		}
 		h.log.ErrorContext(r.Context(), "failed to update task",
@@ -187,7 +181,7 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 			slog.Int("user_id", userID),
 			slog.Any("err", err),
 		)
-		writeError(w, "error on the server side", http.StatusInternalServerError)
+		apierror.Write(w, http.StatusInternalServerError, apierror.CodeInternal, "Internal server error")
 		return
 	}
 
@@ -202,23 +196,19 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		writeError(w, "id must be a number", http.StatusBadRequest)
+		apierror.Write(w, http.StatusBadRequest, apierror.CodeInvalidID, "Id must be a number")
 		return
 	}
 
 	userID, ok := r.Context().Value(userIDKey).(int)
 	if !ok {
-		writeError(w, "unauthorized", http.StatusUnauthorized)
+		apierror.Write(w, http.StatusUnauthorized, apierror.CodeUnauthorized, "Unauthorized user")
 		return
 	}
 
 	if err := h.service.Delete(r.Context(), id, userID); err != nil {
 		if errors.Is(err, service.ErrTaskNotFound) {
-			writeError(w, "not found this task", http.StatusNotFound)
-			return
-		}
-		if errors.Is(err, service.ErrValidation) {
-			writeError(w, err.Error(), http.StatusBadRequest)
+			apierror.Write(w, http.StatusNotFound, apierror.CodeTaskNotFound, "Not found task with this id")
 			return
 		}
 		h.log.ErrorContext(r.Context(), "failed to delete task",
@@ -226,7 +216,7 @@ func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 			slog.Int("user_id", userID),
 			slog.Any("err", err),
 		)
-		writeError(w, "error on the server side", http.StatusInternalServerError)
+		apierror.Write(w, http.StatusInternalServerError, apierror.CodeInternal, "Internal server error")
 		return
 	}
 

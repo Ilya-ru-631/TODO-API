@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"todo_api/internal/apierror"
 	"todo_api/internal/logger"
 	"todo_api/internal/models"
 	"todo_api/internal/repository"
@@ -116,6 +117,8 @@ func Test_Unauthorized(t *testing.T) {
 
 	h := NewTaskHandler(svc, sloger)
 
+	const wantCode = apierror.CodeUnauthorized
+
 	tests := []struct {
 		name    string
 		handler http.HandlerFunc
@@ -170,8 +173,9 @@ func Test_Unauthorized(t *testing.T) {
 			rec := httptest.NewRecorder()
 			tt.handler(rec, req)
 
-			if rec.Code != http.StatusUnauthorized {
-				t.Errorf("got: %v, want: %v", rec.Code, http.StatusUnauthorized)
+			got := decodeAPIError(t, rec)
+			if got.Code != wantCode {
+				t.Fatalf("got code: %v, want code: %v", got.Code, wantCode)
 			}
 		})
 	}
@@ -252,9 +256,11 @@ func Test_GetByID_InvalidTaskID(t *testing.T) {
 	req = req.WithContext(ctx)
 
 	h.GetByID(rec, req)
+	const wantCode = apierror.CodeInvalidID
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("got: %v, want: %v", rec.Code, http.StatusBadRequest)
+	got := decodeAPIError(t, rec)
+	if got.Code != wantCode {
+		t.Errorf("got code: %v, want code: %v", got.Code, wantCode)
 	}
 }
 
@@ -284,9 +290,13 @@ func Test_GetByID_NotFound(t *testing.T) {
 
 	h.GetByID(rec, req)
 
-	if rec.Code != http.StatusNotFound {
-		t.Errorf("got: %v, want: %v", rec.Code, http.StatusNotFound)
+	const wantCode = apierror.CodeTaskNotFound
+
+	got := decodeAPIError(t, rec)
+	if got.Code != wantCode {
+		t.Errorf("got code: %v, want code: %v", got.Code, wantCode)
 	}
+	
 }
 
 func Test_Create(t *testing.T) {
@@ -379,8 +389,11 @@ func Test_Create_InvalidJSON(t *testing.T) {
 
 	h.Create(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("got: %v, want: %v", rec.Code, http.StatusBadRequest)
+	const wantCode = apierror.CodeInvalidJSON
+
+	got := decodeAPIError(t, rec)
+	if got.Code != wantCode {
+		t.Errorf("got code: %v, want code: %v", got.Code, wantCode)
 	}
 }
 
@@ -430,8 +443,16 @@ func Test_Create_EmptyTitle(t *testing.T) {
 			req = req.WithContext(ctx)
 			h.Create(rec, req)
 
-			if rec.Code != http.StatusBadRequest {
-				t.Errorf("got: %v, want: %v", rec.Code, http.StatusBadRequest)
+			const wantCode = apierror.CodeValidation
+			const wantField = "title"
+
+			got := decodeAPIError(t, rec)
+			if got.Code != wantCode {
+				t.Fatalf("got code: %v, want code: %v", got.Code, wantCode)
+			}
+
+			if got.Field != wantField {
+				t.Errorf("got field: %v, want field: %v", got.Field, wantField)
 			}
 		})
 	}
@@ -463,8 +484,11 @@ func Test_Create_Duplicate(t *testing.T) {
 
 	h.Create(rec, req)
 
-	if rec.Code != http.StatusConflict {
-		t.Errorf("got: %v, want: %v", rec.Code, http.StatusConflict)
+	const wantCode = apierror.CodeDuplicateTitle
+
+	got := decodeAPIError(t, rec)
+	if got.Code != wantCode {
+		t.Errorf("got code: %v, want code: %v", got.Code, wantCode)
 	}
 
 }
@@ -502,7 +526,7 @@ func Test_Create_BodyTooLarge(t *testing.T) {
 	}
 }
 
-func Test_IntrenalError(t *testing.T) {
+func Test_InternalError(t *testing.T) {
 	wantUserID := 2
 	errDB := errors.New("db down")
 
@@ -584,8 +608,11 @@ func Test_IntrenalError(t *testing.T) {
 			rec := httptest.NewRecorder()
 			tt.handler(rec, req)
 
-			if rec.Code != http.StatusInternalServerError {
-				t.Errorf("got: %v, want: %v", rec.Code, http.StatusInternalServerError)
+			const wantCode = apierror.CodeInternal
+
+			got := decodeAPIError(t, rec)
+			if got.Code != wantCode {
+				t.Errorf("got code: %v, want code: %v", got.Code, wantCode)
 			}
 		})
 	}
@@ -678,9 +705,13 @@ func Test_Update_InvalidTaskID(t *testing.T) {
 
 	h.Update(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("got: %v, want: %v", rec.Code, http.StatusBadRequest)
+	const wantCode = apierror.CodeInvalidID
+
+	got := decodeAPIError(t, rec)
+	if got.Code != wantCode {
+		t.Errorf("got code: %v, want code: %v", got.Code, wantCode)
 	}
+
 }
 
 func Test_Update_InvalidJSON(t *testing.T) {
@@ -707,8 +738,11 @@ func Test_Update_InvalidJSON(t *testing.T) {
 
 	h.Update(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("got: %v, want: %v", rec.Code, http.StatusBadRequest)
+	const wantCode = apierror.CodeInvalidJSON
+
+	got := decodeAPIError(t, rec)
+	if got.Code != wantCode {
+		t.Errorf("got code: %v, want code: %v", got.Code, wantCode)
 	}
 }
 
@@ -750,8 +784,11 @@ func Test_Update_NotFound(t *testing.T) {
 
 	h.Update(rec, req)
 
-	if rec.Code != http.StatusNotFound {
-		t.Errorf("got: %v, want: %v", rec.Code, http.StatusNotFound)
+	const wantCode = apierror.CodeTaskNotFound
+
+	got := decodeAPIError(t, rec)
+	if got.Code != wantCode {
+		t.Errorf("got code: %v, want code: %v", got.Code, wantCode)
 	}
 }
 
@@ -798,8 +835,16 @@ func Test_Update_EmptyTitle(t *testing.T) {
 			req = req.WithContext(ctx)
 			h.Update(rec, req)
 
-			if rec.Code != http.StatusBadRequest {
-				t.Errorf("got: %v, want: %v", rec.Code, http.StatusBadRequest)
+			const wantCode = apierror.CodeValidation
+			const wantField = "title"
+
+			got := decodeAPIError(t, rec)
+			if got.Code != wantCode {
+				t.Fatalf("got code: %v, want code: %v", got.Code, wantCode)
+			}
+
+			if got.Field != wantField {
+				t.Errorf("got field: %v, want field: %v", got.Field, wantField)
 			}
 		})
 	}
@@ -894,10 +939,13 @@ func Test_Delete_InvalidTaskID(t *testing.T) {
 	req = req.WithContext(ctx)
 
 	h.Delete(rec, req)
+	const wantCode = apierror.CodeInvalidID
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("got: %v, want: %v", rec.Code, http.StatusBadRequest)
+	got := decodeAPIError(t, rec)
+	if got.Code != wantCode {
+		t.Errorf("got code: %v, want code: %v", got.Code, wantCode)
 	}
+
 }
 
 func Test_Delete_NotFound(t *testing.T) {
@@ -926,7 +974,10 @@ func Test_Delete_NotFound(t *testing.T) {
 
 	h.Delete(rec, req)
 
-	if rec.Code != http.StatusNotFound {
-		t.Errorf("got: %v, want: %v", rec.Code, http.StatusNotFound)
+	const wantCode = apierror.CodeTaskNotFound
+
+	got := decodeAPIError(t, rec)
+	if got.Code != wantCode {
+		t.Errorf("got code: %v, want code: %v", got.Code, wantCode)
 	}
 }
