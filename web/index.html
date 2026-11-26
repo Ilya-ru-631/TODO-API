@@ -10,12 +10,12 @@
   <!-- Экран входа -->
   <main id="auth-screen" class="screen" hidden>
     <h1>Мои задачи</h1>
-    <form id="auth-form" class="card">
+    <form id="auth-form" class="card" novalidate>
       <label for="username">Имя пользователя</label>
-      <input id="username" name="username" autocomplete="username" required>
+      <input id="username" name="username" autocomplete="username">
 
       <label for="password">Пароль</label>
-      <input id="password" name="password" type="password" autocomplete="current-password" required>
+      <input id="password" name="password" type="password" autocomplete="current-password">
 
       <p id="auth-error" class="error" role="alert"></p>
 
@@ -33,9 +33,9 @@
       <button id="btn-logout" class="link">Выйти</button>
     </header>
 
-    <form id="task-form" class="card">
+    <form id="task-form" class="card" novalidate>
       <label for="title">Новая задача</label>
-      <input id="title" name="title" placeholder="Что нужно сделать?" required>
+      <input id="title" name="title" placeholder="Что нужно сделать?">
       <input id="description" name="description" placeholder="Описание (необязательно)">
       <button type="submit" class="primary">Добавить задачу</button>
     </form>

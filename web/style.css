@@ -108,3 +108,5 @@ button.link:hover { color: var(--ink); text-decoration: underline; }
 .empty { color: var(--muted); text-align: center; margin-top: 32px; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+input[aria-invalid="true"] { border-color: var(--danger); }
+input[aria-invalid="true"]:focus-visible { outline-color: var(--danger); }
