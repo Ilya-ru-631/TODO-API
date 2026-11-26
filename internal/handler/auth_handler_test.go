@@ -340,11 +340,10 @@ func Test_Login_WrongCredentials(t *testing.T) {
 			rec := httptest.NewRecorder()
 
 			h.Login(rec, req)
-		
+
 			if rec.Code != http.StatusUnauthorized {
 				t.Errorf("got: %v, want: %v", rec.Code, http.StatusUnauthorized)
 			}
-			
 
 			var testErr apierror.Response
 			if err := json.NewDecoder(rec.Body).Decode(&testErr); err != nil {

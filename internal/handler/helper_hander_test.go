@@ -16,7 +16,7 @@ func decodeAPIError(t *testing.T, rec *httptest.ResponseRecorder) apierror.Respo
 		t.Fatalf("error for decode body: %v", err)
 	}
 
-	if testErr.Code == ""{
+	if testErr.Code == "" {
 		t.Fatalf("error code must not be empty")
 	}
 

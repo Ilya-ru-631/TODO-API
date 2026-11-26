@@ -153,7 +153,7 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {	
+	if err != nil {
 		apierror.Write(w, http.StatusBadRequest, apierror.CodeInvalidID, "Id must be a number")
 		return
 	}

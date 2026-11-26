@@ -296,7 +296,7 @@ func Test_GetByID_NotFound(t *testing.T) {
 	if got.Code != wantCode {
 		t.Errorf("got code: %v, want code: %v", got.Code, wantCode)
 	}
-	
+
 }
 
 func Test_Create(t *testing.T) {

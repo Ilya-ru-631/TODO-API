@@ -2,6 +2,7 @@ package apierror
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 )
 
@@ -35,5 +36,7 @@ func WriteValidation(w http.ResponseWriter, code, message, field string) {
 func write(w http.ResponseWriter, status int, body Response) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(body)
+	if err := json.NewEncoder(w).Encode(body); err != nil {
+		log.Printf("failed to encode response: %v", err)
+	}
 }
